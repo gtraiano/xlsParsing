@@ -23,6 +23,7 @@ export function createEditableTable(container, tableModel) {
     const table = document.createElement("table");
     table.className = "data-table";
 
+    // ----- THEAD -----
     const thead = document.createElement("thead");
     const trHead = document.createElement("tr");
 
@@ -39,6 +40,7 @@ export function createEditableTable(container, tableModel) {
     thead.appendChild(trHead);
     table.appendChild(thead);
 
+    // ----- TBODY -----
     const tbody = document.createElement("tbody");
 
     tableModel.rows.forEach((row, rowIndex) => {
@@ -46,24 +48,36 @@ export function createEditableTable(container, tableModel) {
 
         tableModel.columns.forEach(col => {
             const td = document.createElement("td");
-            const input = document.createElement("input");
-            input.value = row[col.key];
-            input.addEventListener("input", () => row[col.key] = input.value);
-            td.appendChild(input);
+            td.contentEditable = "true";
+            td.dataset.row = rowIndex;
+            td.dataset.col = col.key;
+            td.textContent = row[col.key];
             tr.appendChild(td);
         });
 
         const tdDel = document.createElement("td");
         const btnDel = document.createElement("button");
         btnDel.textContent = "X";
-        btnDel.onclick = () => {
+        btnDel.addEventListener("click", () => {
             tableModel.deleteRow(rowIndex);
             createEditableTable(container, tableModel);
-        };
+        });
         tdDel.appendChild(btnDel);
         tr.appendChild(tdDel);
 
         tbody.appendChild(tr);
+    });
+
+    // ----- EVENT DELEGATION: One listener for all editable cells -----
+    tbody.addEventListener("input", (e) => {
+        const td = e.target.closest("td[contenteditable]");
+
+        if (!td) return;
+
+        const rowIndex = td.dataset.row;
+        const colKey = td.dataset.col;
+
+        tableModel.rows[rowIndex][colKey] = td.textContent;
     });
 
     table.appendChild(tbody);

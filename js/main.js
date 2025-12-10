@@ -348,3 +348,4 @@ columnBoxes.addEventListener("dragend", e => {
     if (!box) return;
     box.classList.remove("dragging");
 });
+

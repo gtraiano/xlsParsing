@@ -262,3 +262,8 @@ td[contenteditable="true"]:focus {
 .columnBox:hover {
     background: #b3bafa;
 }
+
+.data-table td input {
+    width: 98%;
+    margin: 0;
+}

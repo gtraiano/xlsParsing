@@ -148,6 +148,8 @@ function initCreateTableTab() {
 
             refreshTable(createTableState.tableModel);
 
+            document.querySelector("table.data-table").addEventListener("input", e => { console.log(e); });
+
         } catch (e) {
             alert("Invalid JSON column mapping: " + e.message);
         }
