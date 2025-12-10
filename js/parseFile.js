@@ -1,85 +1,134 @@
-// parseFile.js
 import { TableModel, createEditableTable } from "./table.js";
 import { updateJSON } from "./syntax_highlight.js";
 import { parseFileState } from "./state.js";
-import { initColumnBoxes } from "./table_ui.js";
-import { mapColumns } from "./mapColumns.js";
 
-let parseFileInitialized = false;
+let initialized = false;
+let worker = null;
 
 export function initParseFileTab() {
-    if (parseFileInitialized) return;
+    if (initialized) return;
 
+    // --- DOM ---
     const dropArea = document.getElementById("drop-area");
     const fileInput = document.getElementById("fileInput");
-    const output = document.getElementById("output");
     const tableContainer = document.getElementById("tableContainer");
-    const skipLines = document.getElementById("skipLines");
+    const output = document.getElementById("output");
+    const columnBoxes = document.getElementById("columnBoxes");
+    const resetBtn = document.getElementById("resetBtn");
+    const deleteBtn = document.getElementById("deleteBtn");
 
-    if (!dropArea || !fileInput || !tableContainer || !output) return;
+    // --- Web Worker ---
+    worker = new Worker("./js/worker.js");
 
-    const debounce = (fn, delay = 250) => {
-        let timeout;
-        return (...args) => {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => fn(...args), delay);
-        };
+    worker.onmessage = (e) => {
+        const result = e.data;
+        const sheetNames = Object.keys(result);
+        const firstSheet = result[sheetNames[0]];
+
+        if (!firstSheet) {
+            tableContainer.textContent = "Empty sheet";
+            return;
+        }
+
+        // Build model
+        parseFileState.tableModel = new TableModel(
+            Object.keys(firstSheet[0]).map(k => ({ key: k, header: k })),
+            firstSheet
+        );
+
+        // Render editable table
+        createEditableTable(tableContainer, parseFileState.tableModel);
+
+        // Live update JSON
+        parseFileState.tableModel.onChange(() =>
+            updateJSON(parseFileState.tableModel.rows, output)
+        );
+
+        updateJSON(firstSheet, output);
+
+        // Show controls
+        resetBtn.style.display = "inline-block";
+        deleteBtn.style.display = "inline-block";
+
+        initColumnBoxes();
     };
 
-    const worker = new Worker("/js/worker.js");
-
-    function parseFileWithSkip(file) {
+    // --- Helpers ---
+    function sendToWorker(file) {
         if (!file) return;
+
         parseFileState.lastFile = file;
 
         tableContainer.textContent = "Parsing…";
         output.textContent = "Parsing…";
 
-        worker.onmessage = e => {
-            try {
-                const sheetName = Object.keys(e.data)[0];
-                const sheet = e.data[sheetName];
-
-                parseFileState.tableModel = new TableModel(
-                    Object.keys(sheet[0] || {}).map(k => ({ key: k, header: k, type: "string" })),
-                    sheet
-                );
-
-                // Live JSON output
-                parseFileState.tableModel.onChange = () => updateJSON(parseFileState.tableModel.rows, output);
-
-                createEditableTable(tableContainer, parseFileState.tableModel);
-
-                // Column mapping UI
-                if (typeof initColumnBoxes === "function") {
-                    initColumnBoxes(parseFileState.tableModel, mapColumns);
-                }
-
-            } catch (err) {
-                output.textContent = "Parsing error: " + err.message;
-            }
-        };
-
-        worker.postMessage({ file });
+        worker.postMessage({
+            file,
+            range: null // optional: pass skipLines or custom range here
+        });
     }
 
-    fileInput.addEventListener("change", e => {
-        if (e.target.files.length) parseFileWithSkip(e.target.files[0]);
+    function initColumnBoxes() {
+        const model = parseFileState.tableModel;
+        if (!model) return;
+
+        columnBoxes.innerHTML = "";
+        model.columns.forEach(col => {
+            const div = document.createElement("div");
+            div.className = "column-box";
+            div.textContent = col.header;
+            div.dataset.col = col.key;
+            columnBoxes.appendChild(div);
+        });
+    }
+
+    // --- Controls: RESET ---
+    resetBtn.addEventListener("click", () => {
+        if (!parseFileState.lastFile) return;
+        sendToWorker(parseFileState.lastFile);
     });
 
+    // --- Controls: DELETE SELECTED COLUMNS ---
+    deleteBtn.addEventListener("click", () => {
+        const model = parseFileState.tableModel;
+        if (!model) return;
+
+        const selected = [
+            ...tableContainer.querySelectorAll("th.col-selected")
+        ].map(th => th.dataset.colname);
+
+        if (!selected.length) return;
+
+        model.deleteColumns(selected);
+        createEditableTable(tableContainer, model);
+        model.triggerChange();
+
+        initColumnBoxes();
+    });
+
+    // --- Drag/drop + file selection ---
     dropArea.addEventListener("click", () => fileInput.click());
-    dropArea.addEventListener("dragover", e => { e.preventDefault(); dropArea.classList.add("dragover"); });
-    dropArea.addEventListener("dragleave", () => dropArea.classList.remove("dragover"));
-    dropArea.addEventListener("drop", e => {
+    fileInput.addEventListener("change", e => {
+        if (e.target.files.length) sendToWorker(e.target.files[0]);
+    });
+
+    dropArea.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropArea.classList.add("dragover");
+    });
+
+    dropArea.addEventListener("dragleave", () =>
+        dropArea.classList.remove("dragover")
+    );
+
+    dropArea.addEventListener("drop", (e) => {
         e.preventDefault();
         dropArea.classList.remove("dragover");
-        if (e.dataTransfer.files.length) parseFileWithSkip(e.dataTransfer.files[0]);
+
+        if (e.dataTransfer.files.length) {
+            sendToWorker(e.dataTransfer.files[0]);
+        }
     });
 
-    skipLines.addEventListener("input", debounce(() => {
-        if (!parseFileState.lastFile) return;
-        parseFileWithSkip(parseFileState.lastFile);
-    }, 300));
-
-    parseFileInitialized = true;
+    initialized = true;
 }

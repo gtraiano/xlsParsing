@@ -1,19 +1,18 @@
 importScripts("https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js");
 
-// Function to trim keys and string values
 const trimObject = (obj) => {
     return Object.fromEntries(
         Object.entries(obj).map(([key, value]) => [
             key.trim(),
-            typeof value === 'string' ? value.trim() : value
+            typeof value === "string" ? value.trim() : value
         ])
     );
 };
 
 self.onmessage = (e) => {
     const { file, range } = e.data;
-
     const reader = new FileReader();
+
     reader.onload = (ev) => {
         const data = ev.target.result;
         const workbook = XLSX.read(data, { type: "array" });
@@ -21,8 +20,6 @@ self.onmessage = (e) => {
 
         workbook.SheetNames.forEach(sheetName => {
             const sheet = workbook.Sheets[sheetName];
-
-            // Convert sheet to JSON and trim each row
             result[sheetName] = XLSX.utils.sheet_to_json(sheet, { defval: null, range, raw: false })
                 .map(trimObject);
         });
