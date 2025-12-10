@@ -19,6 +19,7 @@ body {
     background: #fafafa;
     cursor: pointer;
     transition: .2s;
+    margin-bottom: 1em;
 }
 
 #drop-area.dragover,
