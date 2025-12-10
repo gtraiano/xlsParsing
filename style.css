@@ -1,0 +1,263 @@
+/* ---------------------------------------------------------
+   GENERAL PAGE STYLES
+--------------------------------------------------------- */
+body {
+    font-family: sans-serif;
+    max-width: 1000px;
+    margin: 40px auto;
+}
+
+/* ---------------------------------------------------------
+   FILE DROP AREA
+--------------------------------------------------------- */
+#drop-area {
+    border: 2px dashed #888;
+    border-radius: 10px;
+    padding: 40px;
+    text-align: center;
+    background: #fafafa;
+    cursor: pointer;
+    transition: .2s;
+}
+
+#drop-area.dragover,
+th.dragover {
+    border-color: #4CAF50;
+    background: #f0fff0;
+}
+
+#fileInput {
+    display: none;
+}
+
+/* ---------------------------------------------------------
+   SHEET SELECTOR
+--------------------------------------------------------- */
+#sheetSelector {
+    margin-top: 20px;
+    padding: 5px 10px;
+    font-size: 16px;
+}
+
+/* ---------------------------------------------------------
+   JSON OUTPUT BOX
+--------------------------------------------------------- */
+#output {
+    margin-top: 20px;
+    white-space: pre;
+    background: #272822;
+    color: #f8f8f2;
+    padding: 15px;
+    border-radius: 5px;
+    max-height: 350px;
+    overflow: auto;
+}
+
+/* ---------------------------------------------------------
+   TABLE WRAPPER
+--------------------------------------------------------- */
+:root {
+    --table-wrapper-height: 400px;
+}
+
+#tableWrapper {
+    max-height: var(--table-wrapper-height);
+    overflow: auto;
+    border: 1px solid #ccc;
+    margin-top: 15px;
+    border-radius: 5px;
+}
+
+/* ---------------------------------------------------------
+   TABLE BASE STYLES
+--------------------------------------------------------- */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+    font-size: 14px;
+}
+
+/* Zebra stripes */
+table tbody tr:nth-child(odd) td {
+    background-color: rgba(136, 136, 136, 0.25);
+}
+
+/* ---------------------------------------------------------
+   TH & TD BASE
+--------------------------------------------------------- */
+th,
+td {
+    border: 1px solid #ccc;
+    padding: 6px;
+    background: #fff;
+    text-align: center;
+}
+
+/* ---------------------------------------------------------
+   STICKY HEADER AREA
+--------------------------------------------------------- */
+thead {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: #f0f0f0; /* fixes scroll gap */
+}
+
+/* bottom border reinforcement */
+thead::after {
+    content: "";
+    position: sticky;
+    top: 100%;
+    height: 1px;
+    background: #ccc;
+    display: block;
+    z-index: 6;
+}
+
+/* Header cell styling */
+th {
+    background: #f0f0f0;
+    font-weight: bold;
+    position: sticky;
+    top: 0;
+    z-index: 6;
+
+    /* For arrow */
+    padding-right: 18px;
+
+    /* Remove border gap flicker */
+    background-clip: padding-box;
+    box-shadow: inset 0 -1px 0 #ccc, inset 1px 0 0 #ccc;
+    border: none;
+}
+
+/* ---------------------------------------------------------
+   EXCEL-LIKE ARROW ON HOVER
+--------------------------------------------------------- */
+thead tr:first-of-type th:hover::after {
+    content: "";
+    position: absolute;
+    right: 4px;
+    top: 0;
+    width: 10px;
+    height: 10px;
+    background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 10 6" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 10,0 5,6" fill="black"/></svg>');
+    background-size: contain;
+    background-repeat: no-repeat;
+    pointer-events: none;
+}
+
+/* ---------------------------------------------------------
+   EDITABLE CELL STYLES
+--------------------------------------------------------- */
+td[contenteditable="true"] {
+    background: #ffffff;
+    transition: background .2s;
+}
+
+td[contenteditable="true"]:focus {
+    background: #ffffcc;
+    outline: 2px solid #ffde59;
+}
+
+/* ---------------------------------------------------------
+   BUTTONS
+--------------------------------------------------------- */
+#sendBtn {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+#resetBtn,
+#deleteBtn {
+    background: transparent;
+    font-size: large;
+    border: none;
+    cursor: pointer;
+}
+
+#deleteBtn {
+    color: red;
+}
+
+/* ---------------------------------------------------------
+   COLUMN SELECTION (RIGHT-CLICK)
+--------------------------------------------------------- */
+.col-selected {
+    background: pink !important;
+}
+
+/* ---------------------------------------------------------
+   COLUMN MAP / MAPPER PANEL
+--------------------------------------------------------- */
+#tableColumnWrapper {
+    position: relative;
+}
+
+#columnMap {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 0;
+    left: 100%;
+    margin-left: 10px;
+    border: 1px solid black;
+    border-radius: 4px;
+    width: 250px;
+    height: var(--table-wrapper-height);
+    background: #fafafa;
+
+    visibility: visible;
+    opacity: 1;
+    transition: opacity 1s ease;
+}
+
+#columnMap > h4 {
+    text-align: center;
+    margin: 0;
+    padding: .25em;
+    background: rgba(128, 128, 128, 0.5);
+}
+
+/* Show mapper only if a table exists */
+:not(:has(#tableContainer > table)) #columnMap {
+    visibility: collapse;
+    opacity: 0;
+}
+
+/* ---------------------------------------------------------
+   DRAGGABLE COLUMN BOXES
+--------------------------------------------------------- */
+#columnBoxes {
+    display: flex;
+    overflow: hidden;
+    flex-direction: column;
+    gap: 1em;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 1;
+    overflow: auto;
+    padding: 1em 0;
+}
+
+.columnBox {
+    padding: .35em;
+    border: 2px solid black;
+    width: 75%;
+    border-radius: 4px;
+    text-align: center;
+    user-select: none;
+    cursor: grab;
+    transition: background 0.4s ease;
+}
+
+.columnBox:hover {
+    background: #b3bafa;
+}
