@@ -14,6 +14,6 @@ export function syntaxHighlight(json) {
     });
 }
 
-export function updateJSON(parsedSheet) {
-    output.innerHTML = syntaxHighlight(parsedSheet);
+export function updateJSON(parsedSheet, container) {
+    container.innerHTML = syntaxHighlight(parsedSheet);
 }
