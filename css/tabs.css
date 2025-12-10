@@ -1,0 +1,33 @@
+/* ----- Tabs styling ------ */
+.tabs {
+    display: flex;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #ccc;
+}
+
+.tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    background: #eee;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    margin-right: 5px;
+    user-select: none;
+}
+
+.tab.active {
+    background: white;
+    border-bottom: 2px solid white;
+    font-weight: bold;
+}
+
+.tab-content {
+    display: none;
+    padding: 15px;
+    border: 1px solid #ccc;
+    background: white;
+}
+
+.tab-content.active {
+    display: block;
+}

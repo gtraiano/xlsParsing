@@ -1,0 +1,12 @@
+#output {
+    font-family: monospace;
+    background: #272822; /* dark background */
+    color: #f8f8f2;      /* default text color */
+}
+
+/* JSON syntax highlighting */
+.key     { color: #f92672; }  /* bright pink/red for keys */
+.string  { color: #a6e22e; }  /* light green for strings */
+.number  { color: #66d9ef; }  /* cyan/light blue for numbers */
+.boolean { color: #fd971f; }  /* orange for booleans */
+.null    { color: #ae81ff; }  /* purple for null */

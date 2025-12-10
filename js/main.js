@@ -1,3 +1,4 @@
+import { updateJSON } from './syntax_highlight.js';
 /* ======================================================================
     UTIL: DEBOUNCE
 ====================================================================== */
@@ -41,7 +42,7 @@ const mapColumns = {
 /* ======================================================================
     GLOBAL STATE + WORKER
 ====================================================================== */
-const worker = new Worker("worker.js");
+const worker = new Worker("./js/worker.js");
 let parsedSheets = {};
 let originalSheets = {};
 
@@ -126,10 +127,12 @@ function displaySheet(sheetName) {
 /* ======================================================================
     UPDATE JSON
 ====================================================================== */
+/*
 function updateJSON() {
     output.textContent = JSON.stringify(parsedSheets, null, 2);
+    //output.innerHTML = syntaxHighlight(JSON.stringify(parsedSheets, null, 2));
 }
-
+*/
 /* ======================================================================
     RENAME COLUMN ACROSS ALL ROWS
 ====================================================================== */
@@ -165,7 +168,7 @@ function deleteSelectedColumns(sheetName) {
 ====================================================================== */
 function updateAfterChange() {
     displaySheet(sheetSelector.value);
-    updateJSON();
+    updateJSON(parsedSheets[sheetSelector.value]);
 }
 
 /* ======================================================================
@@ -270,7 +273,7 @@ tableContainer.addEventListener("input", debounce(e => {
         el.title = newName;
     }
 
-    updateJSON();
+    updateJSON(parsedSheets[sheetSelector.value]);
 }, 350));
 
 /* ======================================================================
@@ -321,7 +324,7 @@ tableContainer.addEventListener("drop", e => {
     th.textContent = dropped.label;
     th.title = dropped.property;
 
-    updateJSON();
+    updateJSON(parsedSheets[sheetSelector.value]);
 });
 
 /* ======================================================================
