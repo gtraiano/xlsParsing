@@ -12,6 +12,14 @@ export class TableModel {
         this.rows.push(row);
     }
 
+    addRowIndex(index, defaults = {}) {
+        const row = {};
+        for (const c of this.columns) {
+            row[c.key] = defaults[c.key] ?? "";
+        }
+        this.rows.splice(index, 0, row);
+    }
+
     deleteRow(index) {
         this.rows.splice(index, 1);
     }
@@ -55,15 +63,23 @@ export function createEditableTable(container, tableModel) {
             tr.appendChild(td);
         });
 
-        const tdDel = document.createElement("td");
+        const tdActions = document.createElement("td");
         const btnDel = document.createElement("button");
+        const btnAdd = document.createElement("button");
+
+        btnDel.classList.add("del-row");
         btnDel.textContent = "X";
-        btnDel.addEventListener("click", () => {
-            tableModel.deleteRow(rowIndex);
-            createEditableTable(container, tableModel);
-        });
-        tdDel.appendChild(btnDel);
-        tr.appendChild(tdDel);
+        btnDel.title = "delete row";
+        btnDel.dataset.action = "del";
+
+        btnAdd.classList.add("add-row");
+        btnAdd.dataset.action = "add";
+        btnAdd.textContent = "+";
+        btnAdd.title = "add row";
+
+        tdActions.appendChild(btnDel);
+        tdActions.appendChild(btnAdd);
+        tr.appendChild(tdActions);
 
         tbody.appendChild(tr);
     });
@@ -78,7 +94,29 @@ export function createEditableTable(container, tableModel) {
         const colKey = td.dataset.col;
 
         tableModel.rows[rowIndex][colKey] = td.textContent;
+
+        e.target.dispatchEvent(new CustomEvent("updateJson", { detail: { rowIndex, colKey, value: td.textContent }, bubbles: true }));
     });
+
+    tbody.addEventListener("click", e => {
+        const target = e.target;
+
+        if (target.matches("button")) {
+            const rowIndex = e.target.closest("tr").sectionRowIndex;
+
+            switch (target.dataset.action) {
+                case "add":
+                    tableModel.addRowIndex(rowIndex + 1, {});
+                    break;
+                case "del":
+                    tableModel.deleteRow(rowIndex);
+                    break;
+                default:
+                    break;
+            }
+            createEditableTable(container, tableModel);
+        }
+    })
 
     table.appendChild(tbody);
     container.appendChild(table);

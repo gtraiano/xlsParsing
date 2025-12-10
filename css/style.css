@@ -267,3 +267,10 @@ td[contenteditable="true"]:focus {
     width: 98%;
     margin: 0;
 }
+
+button.del-row,
+button.add-row {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}

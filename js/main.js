@@ -2,7 +2,7 @@ import { updateJSON } from './syntax_highlight.js';
 /* ======================================================================
     UTIL: DEBOUNCE
 ====================================================================== */
-const debounce = (cb, delay = 250) => {
+export const debounce = (cb, delay = 250) => {
     let timeout;
     return (...args) => {
         clearTimeout(timeout);
@@ -349,3 +349,13 @@ columnBoxes.addEventListener("dragend", e => {
     box.classList.remove("dragging");
 });
 
+document.body.addEventListener("updateJson", debounce(e => {
+    if (!parsedSheets.default) parsedSheets.default = [];
+    const { rowIndex, colKey, value } = e.detail;
+    if (!parsedSheets?.default.length) parsedSheets.default.push({});
+    parsedSheets.default[rowIndex][colKey] = value;
+    console.log(parsedSheets);
+}
+    , 350
+)
+);
