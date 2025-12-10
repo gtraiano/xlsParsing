@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <title>Excel Parser & Table Builder</title>
@@ -10,10 +9,8 @@
     <script src="libs/xlsx.full.min.js"></script>
     <script type="module" src="js/main.js" defer></script>
     <script type="module" src="js/tabs.js" defer></script>
-    <script type="module" src="js/table.js" defer></script>
     <script type="module" src="js/table_ui.js" defer></script>
 </head>
-
 <body>
     <h1>Excel Parser & Table Builder</h1>
 
@@ -23,23 +20,18 @@
         <div class="tab" data-tab="create-table">Create Table</div>
     </div>
 
-    <!-- TAB 1: Original Excel Parser -->
+    <!-- TAB 1 -->
     <div id="parse-file" class="tab-content active">
         <h2>Excel / ODS Parser</h2>
-        <div id="drop-area">
-            <p><strong>Drag & Drop</strong> Excel/ODS files here</p>
-            <p>or click to choose a file</p>
-        </div>
+        <div id="drop-area"><p><strong>Drag & Drop</strong> Excel/ODS files here</p><p>or click to choose a file</p></div>
         <input type="file" id="fileInput" accept=".xlsx,.xls,.ods">
         <select id="sheetSelector" style="display:none;"></select>
 
         <h3>JSON Output</h3>
-        <div id="parsing">
-            <pre id="output">JSON output will appear here…</pre>
-            <div id="parsingControls">
-                <label for="skipLines">Skip N first lines</label>
-                <input id="skipLines" type="number" value="0" min="0">
-            </div>
+        <pre id="output">JSON output will appear here…</pre>
+        <div id="parsingControls">
+            <label for="skipLines">Skip N first lines</label>
+            <input id="skipLines" type="number" value="0" min="0">
         </div>
 
         <h3>Sheet Preview</h3>
@@ -54,23 +46,16 @@
         </div>
 
         <div id="controls">
-            <button id="resetBtn" style="display: none;" title="Reset">⟳</button>
-            <button id="deleteBtn" style="display: none;" title="Delete columns">✘︎</button>
+            <button id="resetBtn" title="Reset">⟳</button>
+            <button id="deleteBtn" title="Delete columns">✘︎</button>
         </div>
 
         <button id="sendBtn">Send JSON to Backend</button>
     </div>
 
-    <!-- TAB 2: Create Table On Demand -->
+    <!-- TAB 2 -->
     <div id="create-table" class="tab-content">
         <h2>Create Table On Demand</h2>
-
-        <!--div id="drop-area-create">
-        <p><strong>Drag & Drop</strong> CSV/Excel/ODS files here</p>
-        <p>or click to choose a file</p>
-    </div>
-    <input type="file" id="fileInputCreate" accept=".xlsx,.xls,.ods,.csv"-->
-
         <label for="presetSelect">Choose a preset mapping:</label>
         <select id="presetSelect">
             <option value="">-- Custom --</option>
@@ -89,5 +74,4 @@
         <pre id="customOutput"><code></code></pre>
     </div>
 </body>
-
 </html>

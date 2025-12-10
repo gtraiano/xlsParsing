@@ -268,9 +268,36 @@ td[contenteditable="true"]:focus {
     margin: 0;
 }
 
-button.del-row,
-button.add-row {
+[data-action=del],
+[data-action=add] {
     background: transparent;
     border: none;
     cursor: pointer;
+}
+
+[data-action=del] {
+    color: red;
+}
+
+[data-action=add] {
+    color: green;
+}
+
+[data-action=del]:hover {
+    text-shadow: 0px 0px 4px red;
+}
+
+[data-action=add]:hover {
+    text-shadow: 0px 0px 4px green;
+}
+
+/* Default: hide controls */
+#controls {
+    display: none;
+}
+
+/* If table exists inside #tableContainer, show controls */
+#tableColumnWrapper:has(#tableContainer table) + #controls {
+    display: flex; /* or inline-block if you prefer */
+    gap: 0.5rem;  /* spacing between buttons */
 }
