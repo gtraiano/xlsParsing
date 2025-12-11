@@ -29,6 +29,10 @@
     background: white;
 }
 
+.tab-content:not(.active) * {
+    display: none;
+}
+
 .tab-content.active {
     display: block;
 }
