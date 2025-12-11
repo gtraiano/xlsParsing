@@ -2,7 +2,7 @@ export class TableModel {
     constructor(columns = [], rows = []) {
         this.columns = columns; // [{key, header}]
         this.rows = rows;       // array of objects
-        this._onChange = () => {};
+        this._onChange = () => { };
     }
 
     onChange(cb) {
@@ -23,13 +23,16 @@ export class TableModel {
     }
 
     addRows(n) {
-        const row = {};
-        this.columns.forEach(c => {
-            row[c.key] = "";
-        });
-        this.rows.push(...(new Array(n)).fill(row));
+        this.rows.push(
+            ...Array.from({ length: n }, () => {
+                const r = {};
+                this.columns.forEach(c => r[c.key] = "");
+                return r;
+            })
+        );
         this.triggerChange();
     }
+
 
     addRowIndex(index, defaults = {}) {
         const row = {};

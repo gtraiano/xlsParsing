@@ -51,7 +51,6 @@ export function initCreateTableTab() {
         createEditableTable(tableContainer, model);
 
         model.onChange(() => updateJSON(model.rows, output));
-        updateJSON(model.rows, output);
     }
 
     initialized = true;
