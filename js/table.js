@@ -175,20 +175,20 @@ export function createEditableTable(container, tableModel) {
 
     // Drag-drop remapping
     table.addEventListener("dragover", e => {
-        if (e.target.matches("th")) {
+        if (e.target.matches("th[data-colname]")) {
             e.preventDefault();
             e.target.classList.add("dragover");
         }
     });
 
     table.addEventListener("dragleave", e => {
-        if (e.target.matches("th")) {
+        if (e.target.matches("th[data-colname]")) {
             e.target.classList.remove("dragover");
         }
     });
 
     table.addEventListener("drop", e => {
-        if (!e.target.matches("th")) return;
+        if (!e.target.matches("th[data-colname]")) return;
 
         e.preventDefault();
         e.target.classList.remove("dragover");
