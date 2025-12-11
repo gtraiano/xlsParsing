@@ -107,6 +107,8 @@ export function initParseFileTab() {
         const model = parseFileState.tableModel;
         if (!model) return;
 
+        if(!confirm("Delete selected columns?")) return;
+
         const selected = [
             ...tableContainer.querySelectorAll("th.col-selected")
         ].map(th => th.dataset.colname);

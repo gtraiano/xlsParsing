@@ -93,6 +93,8 @@ export function createEditableTable(container, tableModel) {
         trHead2.appendChild(th2);
     });
 
+    const thActionSelector = document.createElement("th");
+    trHead1.appendChild(thActionSelector);
     const thActions = document.createElement("th");
     thActions.textContent = "Actions";
     trHead2.appendChild(thActions);
@@ -159,7 +161,7 @@ export function createEditableTable(container, tableModel) {
 
     // Column selection row
     table.addEventListener("click", e => {
-        if (!e.target.matches("thead tr:first-child th")) return;
+        if (!e.target.matches("thead tr:first-child th[data-colname]")) return;
 
         const th = e.target;
         const idx = [...th.parentNode.children].indexOf(th);
