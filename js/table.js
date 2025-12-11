@@ -22,6 +22,15 @@ export class TableModel {
         this.triggerChange();
     }
 
+    addRows(n) {
+        const row = {};
+        this.columns.forEach(c => {
+            row[c.key] = "";
+        });
+        this.rows.push(...(new Array(n)).fill(row));
+        this.triggerChange();
+    }
+
     addRowIndex(index, defaults = {}) {
         const row = {};
         this.columns.forEach(c => {
