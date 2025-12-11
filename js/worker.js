@@ -1,4 +1,5 @@
-importScripts("https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js");
+//importScripts("https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js");
+importScripts("../libs/xlsx.full.min.js");
 
 const trimObject = (obj) => {
     return Object.fromEntries(
