@@ -48,12 +48,12 @@ export class TableModel {
         this.triggerChange();
     }
 
-    renameColumn(oldKey, newKey) {
+    renameColumn(oldKey, newKey, newHeader = null) {
         const col = this.columns.find(c => c.key === oldKey);
         if (!col) return;
 
         col.key = newKey;
-        col.header = newKey;
+        col.header = newHeader ?? newKey;
 
         this.rows.forEach(r => {
             r[newKey] = r[oldKey];
@@ -194,8 +194,9 @@ export function createEditableTable(container, tableModel) {
         const dropped = JSON.parse(e.dataTransfer.getData("application/json"));
         const oldKey = e.target.dataset.colname;
         const newKey = dropped.property;
+        const newHeader = dropped.label;
 
-        tableModel.renameColumn(oldKey, newKey);
+        tableModel.renameColumn(oldKey, newKey, newHeader);
         createEditableTable(container, tableModel);
     });
 }
