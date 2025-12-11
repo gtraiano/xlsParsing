@@ -107,7 +107,7 @@ export function initParseFileTab() {
         const model = parseFileState.tableModel;
         if (!model) return;
 
-        if(!confirm("Delete selected columns?")) return;
+        if (!confirm("Delete selected columns?")) return;
 
         const selected = [
             ...tableContainer.querySelectorAll("th.col-selected")
@@ -117,7 +117,6 @@ export function initParseFileTab() {
 
         model.deleteColumns(selected);
         createEditableTable(tableContainer, model);
-        model.triggerChange();
 
         initColumnBoxes();
     });

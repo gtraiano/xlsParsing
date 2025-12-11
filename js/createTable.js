@@ -34,7 +34,7 @@ export function initCreateTableTab() {
             }
         }
 
-        createTableState.tableModel = new TableModel(spec, []);
+        createTableState.tableModel = new TableModel(spec, [], { disableColumnSelection: true });
         renderTable();
     });
 
