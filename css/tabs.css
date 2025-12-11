@@ -33,7 +33,5 @@
 
 .tab-content.active {
     display: flex;              /* flex preserves your column layout */
-    flex-direction: column;
-    gap: 0.5em;
     opacity: 1;
 }
