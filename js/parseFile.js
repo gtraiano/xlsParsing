@@ -1,6 +1,8 @@
 import { TableModel, createEditableTable } from "./table.js";
 import { updateJSON } from "./syntax_highlight.js";
 import { parseFileState } from "./state.js";
+import { debounce } from "./utils.js";
+import { mapColumns } from "./mapColumns.js";
 
 let initialized = false;
 let worker = null;
@@ -16,6 +18,7 @@ export function initParseFileTab() {
     const columnBoxes = document.getElementById("columnBoxes");
     const resetBtn = document.getElementById("resetBtn");
     const deleteBtn = document.getElementById("deleteBtn");
+    const skipLines = document.getElementById("skipLines");
 
     // --- Web Worker ---
     worker = new Worker("./js/worker.js");
@@ -61,10 +64,11 @@ export function initParseFileTab() {
 
         tableContainer.textContent = "Parsing…";
         output.textContent = "Parsing…";
+        const range = Number.parseInt(skipLines.value);
 
         worker.postMessage({
             file,
-            range: null // optional: pass skipLines or custom range here
+            range
         });
     }
 
@@ -73,12 +77,22 @@ export function initParseFileTab() {
         if (!model) return;
 
         columnBoxes.innerHTML = "";
-        model.columns.forEach(col => {
-            const div = document.createElement("div");
-            div.className = "column-box";
+        /*model.columns.forEach(col => {
+            const div = document.createElement("span");
+            div.draggable = true;
+            div.className = "columnBox";
             div.textContent = col.header;
             div.dataset.col = col.key;
             columnBoxes.appendChild(div);
+        });*/
+
+        Object.values(mapColumns).forEach(mp => {
+            const box = document.createElement("span");
+            box.className = "columnBox";
+            box.draggable = true;
+            box.textContent = mp.label;
+            box.dataset.property = mp.property;
+            columnBoxes.appendChild(box);
         });
     }
 
@@ -129,6 +143,30 @@ export function initParseFileTab() {
             sendToWorker(e.dataTransfer.files[0]);
         }
     });
+
+    columnBoxes.addEventListener("dragstart", e => {
+        const box = e.target.closest(".columnBox");
+        if (!box) return;
+
+        e.dataTransfer.setData("application/json", JSON.stringify({
+            label: box.textContent.trim(),
+            property: box.dataset.property
+        }));
+
+        e.dataTransfer.effectAllowed = "move";
+        box.classList.add("dragging");
+    });
+
+    columnBoxes.addEventListener("dragend", e => {
+        const box = e.target.closest(".columnBox");
+        if (!box) return;
+        box.classList.remove("dragging");
+    });
+
+    skipLines.addEventListener("input", debounce(() => {
+        if (!parseFileState.lastFile) return;
+        sendToWorker(parseFileState.lastFile)
+    }, 300));
 
     initialized = true;
 }

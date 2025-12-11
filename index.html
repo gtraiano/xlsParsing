@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Excel Parser & Table Builder</title>
@@ -9,6 +10,7 @@
     <script src="libs/xlsx.full.min.js"></script>
     <script type="module" src="js/main.js" defer></script>
 </head>
+
 <body>
 
     <div class="tabs">
@@ -19,6 +21,10 @@
     <div class="tab-content active" id="parse-file">
         <div id="drop-area">Drop a file here or click to select</div>
         <input type="file" id="fileInput" style="display:none;">
+        <div id="parsingControls">
+            <label for="skipLines">Skip N first lines</label>
+            <input id="skipLines" type="number" value="0" min="0">
+        </div>
         <div id="tableColumnWrapper">
             <div id="tableWrapper">
                 <div id="tableContainer">Drop a file to preview…</div>
@@ -49,4 +55,5 @@
     </div>
 
 </body>
+
 </html>
