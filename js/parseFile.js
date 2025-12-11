@@ -116,7 +116,7 @@ export function initParseFileTab() {
         if (!selected.length) return;
 
         model.deleteColumns(selected);
-        createEditableTable(tableContainer, model);
+        //createEditableTable(tableContainer, model);
 
         initColumnBoxes();
     });
