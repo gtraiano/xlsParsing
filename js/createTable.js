@@ -36,12 +36,13 @@ export function initCreateTableTab() {
 
         createTableState.tableModel = new TableModel(spec, []);
         renderTable();
-        btnAddRow.style.display = "inline-block";
     });
 
     // Add row
     btnAddRow.addEventListener("click", () => {
-        createTableState.tableModel.addRow();
+        //createTableState.tableModel.addRow();
+        const n = Number.parseInt(document.querySelector("#add-row-count").value);
+        createTableState.tableModel.addRows(n);
         renderTable();
     });
 
