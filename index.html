@@ -46,9 +46,12 @@
             <select id="presetSelect">
                 <option value="default">Default Mapping</option>
             </select>
-            <textarea id="columns-input" placeholder='[{"key":"col1","header":"Column 1"}]'></textarea>
+            <!--textarea id="columns-input" placeholder='[{"key":"col1","header":"Column 1"}]'></textarea-->
             <button id="create-table-btn">Create Table</button>
-            <button id="add-row-btn" style="display:none;">Add Row</button>
+            <div id="add-row-controls">
+                <button id="add-row-btn">Add Rows</button>
+                <input id="add-row-count" type="number" value="1" min="1">
+            </div>
         </div>
         <div id="customTableContainer"></div>
         <pre id="customOutput" class="json-output">JSON output will appear here</pre>

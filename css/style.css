@@ -303,8 +303,16 @@ td[contenteditable="true"]:focus {
     gap: 0.5rem;  /* spacing between buttons */
 }
 
-#parse-file {
+#parse-file, #create-table {
     display: flex;
     flex-direction: column;
     gap: .5em;
+}
+
+#add-row-controls {
+    visibility: hidden;
+}
+:has(#customTableContainer > table) #add-row-controls {
+    display: inline-block;
+    visibility: visible;
 }
