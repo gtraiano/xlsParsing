@@ -1,4 +1,4 @@
-import { TableModel, createEditableTable } from "./table.js";
+import { TableModel, createIncrementalTable } from "./table.js";
 import { updateJSON } from "./syntax_highlight.js";
 import { parseFileState } from "./state.js";
 import { debounce } from "./utils.js";
@@ -33,14 +33,14 @@ export function initParseFileTab() {
             return;
         }
 
-        // Build model
+        // Build table model
         parseFileState.tableModel = new TableModel(
             Object.keys(firstSheet[0]).map(k => ({ key: k, header: k })),
             firstSheet
         );
 
-        // Render editable table
-        createEditableTable(tableContainer, parseFileState.tableModel);
+        // Render table
+        createIncrementalTable(tableContainer, parseFileState.tableModel);
 
         // Live update JSON
         parseFileState.tableModel.onChange(() =>
@@ -66,10 +66,7 @@ export function initParseFileTab() {
         output.textContent = "Parsing…";
         const range = Number.parseInt(skipLines.value);
 
-        worker.postMessage({
-            file,
-            range
-        });
+        worker.postMessage({ file, range });
     }
 
     function initColumnBoxes() {
@@ -77,14 +74,6 @@ export function initParseFileTab() {
         if (!model) return;
 
         columnBoxes.innerHTML = "";
-        /*model.columns.forEach(col => {
-            const div = document.createElement("span");
-            div.draggable = true;
-            div.className = "columnBox";
-            div.textContent = col.header;
-            div.dataset.col = col.key;
-            columnBoxes.appendChild(div);
-        });*/
 
         Object.values(mapColumns).forEach(mp => {
             const box = document.createElement("span");
@@ -106,7 +95,6 @@ export function initParseFileTab() {
     deleteBtn.addEventListener("click", () => {
         const model = parseFileState.tableModel;
         if (!model) return;
-
         if (!confirm("Delete selected columns?")) return;
 
         const selected = [
@@ -116,8 +104,7 @@ export function initParseFileTab() {
         if (!selected.length) return;
 
         model.deleteColumns(selected);
-        //createEditableTable(tableContainer, model);
-
+        createIncrementalTable(tableContainer, model); // update UI
         initColumnBoxes();
     });
 
@@ -127,7 +114,7 @@ export function initParseFileTab() {
         if (e.target.files.length) sendToWorker(e.target.files[0]);
     });
 
-    dropArea.addEventListener("dragover", (e) => {
+    dropArea.addEventListener("dragover", e => {
         e.preventDefault();
         dropArea.classList.add("dragover");
     });
@@ -136,7 +123,7 @@ export function initParseFileTab() {
         dropArea.classList.remove("dragover")
     );
 
-    dropArea.addEventListener("drop", (e) => {
+    dropArea.addEventListener("drop", e => {
         e.preventDefault();
         dropArea.classList.remove("dragover");
 
@@ -145,6 +132,7 @@ export function initParseFileTab() {
         }
     });
 
+    // --- Column Boxes Drag & Drop ---
     columnBoxes.addEventListener("dragstart", e => {
         const box = e.target.closest(".columnBox");
         if (!box) return;
@@ -164,9 +152,10 @@ export function initParseFileTab() {
         box.classList.remove("dragging");
     });
 
+    // --- Skip lines input ---
     skipLines.addEventListener("input", debounce(() => {
         if (!parseFileState.lastFile) return;
-        sendToWorker(parseFileState.lastFile)
+        sendToWorker(parseFileState.lastFile);
     }, 300));
 
     initialized = true;

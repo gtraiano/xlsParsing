@@ -1,6 +1,5 @@
-import { TableModel, createEditableTable } from "./table.js";
+import { TableModel, createIncrementalTable } from "./table.js";
 import { updateJSON } from "./syntax_highlight.js";
-import { createTableState } from "./state.js";
 import { mapColumns } from "./mapColumns.js";
 
 let initialized = false;
@@ -8,50 +7,48 @@ let initialized = false;
 export function initCreateTableTab() {
     if (initialized) return;
 
-    const container = document.getElementById("create-table");
-    const btnCreate = container.querySelector("#create-table-btn");
-    const btnAddRow = container.querySelector("#add-row-btn");
-    const columnsInput = container.querySelector("#columns-input");
-    const presetSelect = container.querySelector("#presetSelect");
-    const tableContainer = container.querySelector("#customTableContainer");
-    const output = container.querySelector("#customOutput");
+    // --- DOM ---
+    const container = document.getElementById("customTableContainer");
+    const output = document.getElementById("customOutput");
+    const createBtn = document.getElementById("create-table-btn");
+    const presetSelect = document.getElementById("presetSelect");
+    const addRowBtn = document.getElementById("add-row-btn");
+    const addRowCount = document.getElementById("add-row-count");
 
-    // Build table
-    btnCreate.addEventListener("click", () => {
-        let spec;
-
-        if (presetSelect.value === "default") {
-            spec = Object.values(mapColumns).map(c => ({
-                key: c.property,
-                header: c.label
-            }));
-        } else {
-            try {
-                spec = JSON.parse(columnsInput.value);
-            } catch (err) {
-                alert("Provide valid JSON columns");
-                return;
-            }
-        }
-
-        createTableState.tableModel = new TableModel(spec, [], { disableColumnSelection: true });
-        renderTable();
-    });
-
-    // Add row
-    btnAddRow.addEventListener("click", () => {
-        //createTableState.tableModel.addRow();
-        const n = Number.parseInt(document.querySelector("#add-row-count").value);
-        createTableState.tableModel.addRows(n);
-        renderTable();
-    });
+    let tableModel = null;
 
     function renderTable() {
-        const model = createTableState.tableModel;
-        createEditableTable(tableContainer, model);
-
-        model.onChange(() => updateJSON(model.rows, output));
+        if (!tableModel) return;
+        createIncrementalTable(container, tableModel);
+        updateJSON(tableModel.rows, output);
     }
+
+    // --- CREATE TABLE ---
+    createBtn.addEventListener("click", () => {
+        // Columns from mapColumns
+        const columns = Object.values(mapColumns).map((mp, idx) => ({
+            key: mp.property,
+            header: mp.label
+        }));
+
+        // Empty rows initially
+        const rows = [];
+
+        tableModel = new TableModel(columns, rows);
+
+        // Live JSON output
+        tableModel.onChange(() => updateJSON(tableModel.rows, output));
+
+        renderTable();
+    });
+
+    // --- ADD ROWS ---
+    addRowBtn.addEventListener("click", () => {
+        if (!tableModel) return;
+        const n = Math.max(1, parseInt(addRowCount.value));
+        tableModel.addRows(n); // append n rows
+        renderTable();
+    });
 
     initialized = true;
 }
