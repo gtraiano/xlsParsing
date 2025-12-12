@@ -340,3 +340,8 @@ th.invalid-drop {
     opacity: 0.5;
     cursor: grabbing;          /* while dragging */
 }
+
+.columnBox.disabled {
+    opacity: 0.2;
+    pointer-events: none;
+}
