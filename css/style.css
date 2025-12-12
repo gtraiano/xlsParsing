@@ -73,6 +73,12 @@ th.dragover-disallowed {
     width: 85%;
 }
 
+#customTableContainer {
+    height: var(--table-wrapper-height);
+    overflow: auto;
+    border-radius: 5px;
+}
+
 /* ---------------------------------------------------------
    TABLE BASE STYLES
 --------------------------------------------------------- */
