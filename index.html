@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Excel Parser & Table Builder</title>
+    <title>Μαζική Καταχώριση Εξαιρέσων</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/tabs.css">
     <link rel="stylesheet" href="css/syntax_highlight.css">
@@ -14,20 +14,20 @@
 <body>
 
     <div class="tabs">
-        <button class="tab active" data-tab="parse-file">Parse File</button>
-        <button class="tab" data-tab="create-table">Create Table</button>
+        <button class="tab active" data-tab="parse-file">Από Αρχείο</button>
+        <button class="tab" data-tab="create-table">Δημιουργία πίνακα</button>
     </div>
 
     <div class="tab-content active" id="parse-file">
-        <div id="drop-area">Drop a file here or click to select</div>
+        <div id="drop-area">Σύρετε ένα αρχείο εδώ ή κάντε κλικ</div>
         <input type="file" id="fileInput" style="display:none;">
         <div id="parsingControls">
-            <label for="skipLines">Skip N first lines</label>
+            <label for="skipLines">Παράβλεψη γραμμών</label>
             <input id="skipLines" type="number" value="0" min="0">
         </div>
         <div id="tableColumnWrapper">
             <div id="tableWrapper">
-                <div id="tableContainer">Drop a file to preview…</div>
+                <div id="tableContainer">Αναμονή αρχείου για προεπισκόπιση…</div>
             </div>
             <div id="columnMap">
                 <h4>Αντιστοίχιση στηλών</h4>
@@ -35,26 +35,26 @@
             </div>
         </div>
         <div id="controls">
-            <button id="resetBtn" title="Reset" style="display:none;">⟳</button>
-            <button id="deleteBtn" title="Delete columns" style="display:none;">✘︎</button>
+            <button id="resetBtn" title="Επαναφορά" style="display:none;">⟳</button>
+            <button id="deleteBtn" title="Διαγραφή στηλών" style="display:none;">✘︎</button>
         </div>
-        <pre id="output" class="json-output">JSON output will appear here</pre>
+        <pre id="output" class="json-output">Έξοδος σε JSON θα εμφανιστεί εδώ</pre>
     </div>
 
     <div class="tab-content" id="create-table">
         <div id="create-table-container">
             <select id="presetSelect">
-                <option value="default">Default Mapping</option>
+                <option value="default">Προεπιλεγμένη Αντιστοίχιση</option>
             </select>
             <!--textarea id="columns-input" placeholder='[{"key":"col1","header":"Column 1"}]'></textarea-->
-            <button id="create-table-btn">Create Table</button>
+            <button id="create-table-btn">Δημιουργία Πίνακα</button>
             <div id="add-row-controls">
-                <button id="add-row-btn">Add Rows</button>
+                <button id="add-row-btn">Προσθήκη Γραμμών</button>
                 <input id="add-row-count" type="number" value="1" min="1">
             </div>
         </div>
         <div id="customTableContainer"></div>
-        <pre id="customOutput" class="json-output">JSON output will appear here</pre>
+        <pre id="customOutput" class="json-output">Έξοδος σε JSON θα εμφανιστεί εδώ</pre>
     </div>
 
 </body>
