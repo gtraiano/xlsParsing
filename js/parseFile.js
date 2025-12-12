@@ -34,10 +34,10 @@ export function initParseFileTab() {
         }
 
         // Build table model
-        parseFileState.tableModel = new TableModel(
-            Object.keys(firstSheet[0]).map(k => ({ key: k, header: k })),
-            firstSheet
-        );
+        parseFileState.tableModel = new TableModel({
+            columns: Object.keys(firstSheet[0]).map(k => ({ key: k, header: k })),
+            rows: firstSheet
+        });
 
         // Render table
         createIncrementalTable(tableContainer, parseFileState.tableModel);

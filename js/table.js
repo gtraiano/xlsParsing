@@ -1,9 +1,13 @@
 export class TableModel {
-    constructor(columns = [], rows = [], options = null) {
+    static defaultOptions = {
+        disableColumnSelection: false
+    };
+    
+    constructor({ columns = [], rows = [], options = {} }) {
         this.columns = columns;
         this.rows = rows;
         this.listeners = [];
-        this.options = options;
+        this.options = { ...TableModel.defaultOptions, ...options };
     }
 
     onChange(fn) {
@@ -148,7 +152,7 @@ export function createIncrementalTable(container, tableModel) {
     });
 
     // Column selection
-    !!tableModel.options?.disableColumnSelection === false &&
+    tableModel.options.disableColumnSelection === false &&
     table.addEventListener("click", e => {
         const th = e.target.closest("thead tr:first-child th[data-colname]");
         if (!th) return;

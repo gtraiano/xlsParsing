@@ -19,7 +19,7 @@ export function initCreateTableTab() {
 
     function renderTable() {
         if (!tableModel) return;
-        createIncrementalTable(container, tableModel, { disableColumnSelection: true });
+        createIncrementalTable(container, tableModel);
         updateJSON(tableModel.rows, output);
     }
 
@@ -34,7 +34,7 @@ export function initCreateTableTab() {
         // Empty rows initially
         const rows = [];
 
-        tableModel = new TableModel(columns, rows);
+        tableModel = new TableModel({ columns, rows, options: { disableColumnSelection: true }});
 
         // Live JSON output
         tableModel.onChange(() => updateJSON(tableModel.rows, output));
