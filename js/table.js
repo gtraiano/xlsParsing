@@ -113,8 +113,8 @@ export function createIncrementalTable(container, tableModel) {
 
         const tdActions = document.createElement("td");
         tdActions.innerHTML = `
-            <button data-action="del" title="Delete row">✘</button>
-            <button data-action="add" title="Add row">✚</button>
+            <button data-action="del" title="Διαγραφή Γραμμής">✘</button>
+            <button data-action="add" title="Προσθήκη Γραμμής">✚</button>
         `;
         tr.appendChild(tdActions);
         tbody.appendChild(tr);
@@ -148,7 +148,7 @@ export function createIncrementalTable(container, tableModel) {
     });
 
     // Column selection
-    tableModel.options?.disableColumnSelection === false &&
+    !!tableModel.options?.disableColumnSelection === false &&
     table.addEventListener("click", e => {
         const th = e.target.closest("thead tr:first-child th[data-colname]");
         if (!th) return;
@@ -242,7 +242,8 @@ export function createIncrementalTable(container, tableModel) {
 
         tableModel.renameColumn(targetKey, dropped.property, dropped.label);
         createIncrementalTable(container, tableModel);
-        document.querySelector(`.columnBox[data-property=${dropped.property}]`).title = `Mapped to ${targetKey}`;
+        document.querySelector(`.columnBox[data-property=${dropped.property}]`).title = `Αντιστοιχισμένο στο ${targetKey}`;
+        document.querySelector(`.columnBox[data-property=${dropped.property}]`).classList.add("disabled");
     });
 
 }
@@ -295,8 +296,8 @@ export function createEditableTable(container, tableModel) {
         });
         const tdActions = document.createElement("td");
         tdActions.innerHTML = `
-            <button data-action="del" title="Delete row">✘</button>
-            <button data-action="add" title="Add row">✚</button>
+            <button data-action="del" title="Διαγραφή Γραμμής">✘</button>
+            <button data-action="add" title="Προσθήκη Γραμμής">✚</button>
         `;
         tr.appendChild(tdActions);
         tbody.appendChild(tr);
