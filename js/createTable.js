@@ -1,6 +1,6 @@
 import { TableModel, createIncrementalTable } from "./table.js";
 import { updateJSON } from "./syntax_highlight.js";
-import { mapColumns } from "./mapColumns.js";
+import { mapColumns } from "./state.js";
 
 let initialized = false;
 
@@ -19,7 +19,7 @@ export function initCreateTableTab() {
 
     function renderTable() {
         if (!tableModel) return;
-        createIncrementalTable(container, tableModel);
+        createIncrementalTable(container, tableModel, { disableColumnSelection: true });
         updateJSON(tableModel.rows, output);
     }
 

@@ -2,7 +2,7 @@ import { TableModel, createIncrementalTable } from "./table.js";
 import { updateJSON } from "./syntax_highlight.js";
 import { parseFileState } from "./state.js";
 import { debounce } from "./utils.js";
-import { mapColumns } from "./mapColumns.js";
+import { mapColumns } from "./state.js";
 
 let initialized = false;
 let worker = null;

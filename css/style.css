@@ -28,6 +28,11 @@ th.dragover {
     background: #f0fff0;
 }
 
+th.dragover-disallowed {
+    background: rgba(255, 0, 0, 0.25);
+    cursor: not-allowed !important;
+}
+
 #fileInput {
     display: none;
 }
@@ -44,7 +49,8 @@ th.dragover {
 /* ---------------------------------------------------------
    JSON OUTPUT BOX
 --------------------------------------------------------- */
-#output {
+#output,
+#customOutput {
     margin-top: 20px;
     white-space: pre;
     padding: 15px;
@@ -314,4 +320,23 @@ td[contenteditable="true"]:focus {
 :has(#customTableContainer > table) #add-row-controls {
     display: inline-block;
     visibility: visible;
+}
+
+.not-allowed {
+    cursor: no-drop;
+}
+
+th.dragover {
+    outline: 2px dashed #0a0; /* allowed drop */
+    cursor: grab;
+}
+
+th.invalid-drop {
+    outline: 2px dashed red; /* visually show drop not allowed */
+    cursor: not-allowed;      /* changes cursor when hovering */
+}
+
+.columnBox.dragging {
+    opacity: 0.5;
+    cursor: grabbing;          /* while dragging */
 }

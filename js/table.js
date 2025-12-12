@@ -1,8 +1,9 @@
 export class TableModel {
-    constructor(columns = [], rows = []) {
+    constructor(columns = [], rows = [], options = null) {
         this.columns = columns;
         this.rows = rows;
         this.listeners = [];
+        this.options = options;
     }
 
     onChange(fn) {
@@ -59,6 +60,7 @@ export class TableModel {
     }
 }
 
+import { mapColumns } from "./state.js";
 // ----------------------------- Incremental Table Renderer -----------------------------
 export function createIncrementalTable(container, tableModel) {
     container.innerHTML = "";
@@ -146,6 +148,7 @@ export function createIncrementalTable(container, tableModel) {
     });
 
     // Column selection
+    tableModel.options?.disableColumnSelection === false &&
     table.addEventListener("click", e => {
         const th = e.target.closest("thead tr:first-child th[data-colname]");
         if (!th) return;
@@ -159,34 +162,89 @@ export function createIncrementalTable(container, tableModel) {
     });
 
     // Column header drag & drop
+    /*
     table.addEventListener("dragover", e => {
         const th = e.target.closest("th[data-colname]");
         if (!th) return;
         e.preventDefault();
         th.classList.add("dragover");
     });
+    */
+    table.addEventListener("dragover", e => {
+        const th = e.target.closest("th[data-colname]");
+        if (!th) return;
+
+        e.preventDefault();
+
+        const draggedData = JSON.parse(e.dataTransfer.getData("application/json"));
+        const targetKey = th.dataset.colname;
+
+        const isAllowed = targetKey !== draggedData.property && !mapColumns[draggedData.property]?.mapped;
+
+        th.classList.remove("dragover", "invalid-drop");
+
+        if (isAllowed) {
+            th.classList.add("dragover");
+            e.dataTransfer.dropEffect = "move"; // green cursor
+        } else {
+            th.classList.add("invalid-drop");
+            e.dataTransfer.dropEffect = "none"; // not-allowed cursor
+        }
+    });
+
 
     table.addEventListener("dragleave", e => {
         const th = e.target.closest("th[data-colname]");
         if (!th) return;
-        th.classList.remove("dragover");
+        th.classList.remove("dragover", "invalid-drop");
     });
 
+
+    /*table.addEventListener("drop", e => {
+        const th = e.target.closest("th[data-colname]");
+        if (!th) return;
+
+        e.preventDefault();
+
+        const dropped = JSON.parse(e.dataTransfer.getData("application/json"));
+        const oldKey = th.dataset.colname;
+        const newKey = dropped.property;
+
+        th.classList.remove("dragover");
+        if (oldKey !== newKey && !mapColumns[newKey].mapped) {
+            const newHeader = dropped.label;
+
+            tableModel.renameColumn(oldKey, newKey, newHeader);
+            createIncrementalTable(container, tableModel);
+
+            document.querySelector(`.columnBox[data-property=${newKey}]`).title = `Mapped to ${oldKey}`;
+        }
+        else {
+            console.warn(`Column ${newKey} is already mapped to ${mapColumns[newKey].mapped}`);
+        }
+    });*/
     table.addEventListener("drop", e => {
         const th = e.target.closest("th[data-colname]");
         if (!th) return;
 
         e.preventDefault();
-        th.classList.remove("dragover");
 
         const dropped = JSON.parse(e.dataTransfer.getData("application/json"));
-        const oldKey = th.dataset.colname;
-        const newKey = dropped.property;
-        const newHeader = dropped.label;
+        const targetKey = th.dataset.colname;
+        const isAllowed = targetKey !== dropped.property && !mapColumns[dropped.property]?.mapped;
 
-        tableModel.renameColumn(oldKey, newKey, newHeader);
+        th.classList.remove("dragover", "invalid-drop");
+
+        if (!isAllowed) {
+            console.warn(`Cannot drop ${dropped.property} on ${targetKey}`);
+            return; // block invalid drop
+        }
+
+        tableModel.renameColumn(targetKey, dropped.property, dropped.label);
         createIncrementalTable(container, tableModel);
+        document.querySelector(`.columnBox[data-property=${dropped.property}]`).title = `Mapped to ${targetKey}`;
     });
+
 }
 
 // ----------------------------- Table Renderer -----------------------------
