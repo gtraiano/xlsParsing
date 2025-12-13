@@ -335,6 +335,7 @@ td[contenteditable="true"]:focus {
 th.dragover {
     outline: 2px dashed #0a0; /* allowed drop */
     cursor: grab;
+     z-index: 10;
 }
 
 th.invalid-drop {
