@@ -1,4 +1,4 @@
-import { TableModel, createIncrementalTable } from "./table.js";
+import { TableModel, initTable } from "./table.js";
 import { updateJSON } from "./syntax_highlight.js";
 import { createTableState, mapColumns } from "./state.js";
 
@@ -18,7 +18,7 @@ export function initCreateTableTab() {
 
     function renderTable() {
         if (!createTableState.tableModel) return;
-        createIncrementalTable(container, createTableState.tableModel);
+        initTable(container, createTableState.tableModel, mapColumns);
         updateJSON(createTableState.tableModel.rows, output);
     }
 

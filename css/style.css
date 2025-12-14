@@ -335,12 +335,13 @@ td[contenteditable="true"]:focus {
 th.dragover {
     outline: 2px dashed #0a0; /* allowed drop */
     cursor: grab;
-     z-index: 10;
+    z-index: 10;
 }
 
 th.invalid-drop {
     outline: 2px dashed red; /* visually show drop not allowed */
     cursor: not-allowed;      /* changes cursor when hovering */
+    z-index: 10;
 }
 
 .columnBox.dragging {
@@ -351,4 +352,36 @@ th.invalid-drop {
 .columnBox.disabled {
     opacity: 0.2;
     pointer-events: none;
+}
+
+.data-table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th, td {
+    border: 1px solid #ccc;
+    padding: 6px;
+}
+
+th.locked {
+    background: #f4f4f4;
+    color: #888;
+    cursor: not-allowed;
+}
+
+th.dragover {
+    background: #c8f7c5;
+}
+
+th.invalid-drop {
+    background: #f7c5c5;
+}
+
+.col-selected {
+    background: #dbeafe;
+}
+
+button {
+    cursor: pointer;
 }

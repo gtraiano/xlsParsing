@@ -1,4 +1,4 @@
-import { TableModel, createIncrementalTable } from "./table.js";
+import { TableModel, initTable } from "./table.js";
 import { updateJSON } from "./syntax_highlight.js";
 import { parseFileState } from "./state.js";
 import { debounce } from "./utils.js";
@@ -40,7 +40,7 @@ export function initParseFileTab() {
         });
 
         // Render table
-        createIncrementalTable(tableContainer, parseFileState.tableModel);
+        initTable(tableContainer, parseFileState.tableModel, mapColumns);
 
         // Live update JSON
         parseFileState.tableModel.onChange(() =>
@@ -104,7 +104,7 @@ export function initParseFileTab() {
         if (!selected.length) return;
 
         model.deleteColumns(selected);
-        createIncrementalTable(tableContainer, model); // update UI
+        initTable(tableContainer, model, mapColumns); // update UI
         initColumnBoxes();
     });
 

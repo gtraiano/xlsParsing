@@ -2,7 +2,7 @@ export class TableModel {
     static defaultOptions = {
         disableColumnSelection: false
     };
-    
+
     constructor({ columns = [], rows = [], options = {} }) {
         this.columns = columns;
         this.rows = rows;
@@ -64,301 +64,276 @@ export class TableModel {
     }
 }
 
-import { mapColumns } from "./state.js";
-// ----------------------------- Incremental Table Renderer -----------------------------
-export function createIncrementalTable(container, tableModel) {
+/* =========================================================
+   Utilities
+========================================================= */
+
+function delegateClosest(e, selector) {
+    const t =
+        e.target instanceof Element
+            ? e.target
+            : e.target?.parentElement;
+    return t?.closest(selector) || null;
+}
+
+function clamp(v, min, max) {
+    return Math.max(min, Math.min(max, v));
+}
+
+/* =========================================================
+   History (Undo / Redo)
+========================================================= */
+
+class History {
+    stack = [];
+    index = -1;
+
+    push(diff) {
+        this.stack = this.stack.slice(0, this.index + 1);
+        this.stack.push(diff);
+        this.index++;
+    }
+
+    undo() {
+        if (this.index < 0) return;
+        this.stack[this.index--].undo();
+    }
+
+    redo() {
+        if (this.index >= this.stack.length - 1) return;
+        this.stack[++this.index].redo();
+    }
+}
+
+const history = new History();
+
+/* =========================================================
+   Column Box Drag Helpers
+========================================================= */
+
+function lockColumnBox(property, mappedTo) {
+    const box = document.querySelector(`.columnBox[data-property="${property}"]`);
+    if (!box) return;
+    box.classList.add("disabled");
+    box.title = `Mapped to ${mappedTo}`;
+    box.draggable = false;
+}
+
+function unlockColumnBox(property) {
+    const box = document.querySelector(`.columnBox[data-property="${property}"]`);
+    if (!box) return;
+    box.classList.remove("disabled");
+    box.title = "";
+    box.draggable = true;
+}
+
+/* =========================================================
+   Table Helpers
+========================================================= */
+
+function th(key, text = "", draggable = false) {
+    const th = document.createElement("th");
+    th.dataset.colname = key;
+    th.textContent = text;
+    if (draggable) th.draggable = true;
+    return th;
+}
+
+function renameColumnDOM(table, model, oldKey, newKey, newHeader) {
+    model.renameColumn(oldKey, newKey, newHeader);
+
+    table.querySelectorAll(`[data-colname="${oldKey}"]`).forEach(th => th.dataset.colname = newKey);
+    table.querySelectorAll(`td[data-col="${oldKey}"]`).forEach(td => td.dataset.col = newKey);
+
+    const header = table.querySelector(`thead tr:nth-child(2) th[data-colname="${newKey}"]`);
+    if (header) {
+        header.textContent = newHeader;
+        header.title = newKey;
+        header.classList.add("locked");
+        header.contentEditable = false;
+    }
+}
+
+/* =========================================================
+   Main Table Init
+========================================================= */
+
+export function initTable(container, tableModel, mapColumns) {
     container.innerHTML = "";
 
     const table = document.createElement("table");
     table.className = "data-table";
-
-    const thead = document.createElement("thead");
-    const trSelect = document.createElement("tr"); // column selection
-    const trHeader = document.createElement("tr"); // editable headers
-
-    tableModel.columns.forEach(col => {
-        const thSel = document.createElement("th");
-        thSel.dataset.colname = col.key;
-
-        const thHeader = document.createElement("th");
-        thHeader.contentEditable = true;
-        thHeader.dataset.colname = col.key;
-        thHeader.textContent = col.header;
-        thHeader.title = col.key;
-
-        trSelect.appendChild(thSel);
-        trHeader.appendChild(thHeader);
-    });
-
-    // Actions column
-    const thSelAction = document.createElement("th");
-    trSelect.appendChild(thSelAction);
-
-    const thHeaderAction = document.createElement("th");
-    thHeaderAction.textContent = "Actions";
-    trHeader.appendChild(thHeaderAction);
-
-    thead.appendChild(trSelect);
-    thead.appendChild(trHeader);
-    table.appendChild(thead);
-
-    const tbody = document.createElement("tbody");
-
-    tableModel.rows.forEach((row, rowIndex) => {
-        const tr = document.createElement("tr");
-        tableModel.columns.forEach(col => {
-            const td = document.createElement("td");
-            td.contentEditable = true;
-            td.dataset.row = rowIndex;
-            td.dataset.col = col.key;
-            td.textContent = row[col.key];
-            tr.appendChild(td);
-        });
-
-        const tdActions = document.createElement("td");
-        tdActions.innerHTML = `
-            <button data-action="del" title="Διαγραφή Γραμμής">✘</button>
-            <button data-action="add" title="Προσθήκη Γραμμής">✚</button>
-        `;
-        tr.appendChild(tdActions);
-        tbody.appendChild(tr);
-    });
-
-    table.appendChild(tbody);
     container.appendChild(table);
 
-    // ---------------- EVENTS ----------------
+    const thead = table.createTHead();
+    const tbody = table.createTBody();
+
+    // Header rows
+    const trSelect = thead.insertRow();
+    const trHeader = thead.insertRow();
+
+    function rebuildHeaders() {
+        trSelect.innerHTML = "";
+        trHeader.innerHTML = "";
+
+        tableModel.columns.forEach(c => {
+            trSelect.appendChild(th(c.key));
+            trHeader.appendChild(th(c.key, c.header, true));
+        });
+
+        trSelect.appendChild(document.createElement("th"));
+        trHeader.appendChild(Object.assign(document.createElement("th"), { textContent: "Actions" }));
+    }
+
+    rebuildHeaders();
+
+    /* ---------- Render rows ---------- */
+    function renderRows() {
+        tbody.querySelectorAll("tr.data-row").forEach(r => r.remove());
+
+        tableModel.rows.forEach((row, i) => {
+            const tr = document.createElement("tr");
+            tr.dataset.row = i;
+            tr.className = "data-row";
+
+            tableModel.columns.forEach(col => {
+                const td = document.createElement("td");
+                td.dataset.col = col.key;
+                td.contentEditable = true;
+                td.textContent = row[col.key];
+                tr.appendChild(td);
+            });
+
+            const tdActions = document.createElement("td");
+            tdActions.innerHTML = `<button data-action="del">✘</button><button data-action="add">✚</button>`;
+            tr.appendChild(tdActions);
+
+            tbody.appendChild(tr);
+        });
+    }
+
+    renderRows();
+
+    /* =========================================================
+       Event Delegation
+    ========================================================== */
+
     // Cell editing
     tbody.addEventListener("input", e => {
-        const td = e.target.closest("td[contenteditable]");
+        const td = delegateClosest(e, "td[contenteditable]");
         if (!td) return;
-        const row = +td.dataset.row;
+        const tr = td.closest("tr");
+        const row = +tr.dataset.row;
         const col = td.dataset.col;
-        tableModel.rows[row][col] = td.textContent;
-        tableModel.triggerChange([{ type: "cell-edit", row, col, value: td.textContent }]);
+
+        const old = tableModel.rows[row][col];
+        const val = td.textContent;
+        if (old === val) return;
+
+        tableModel.rows[row][col] = val;
+
+        history.push({
+            undo: () => { tableModel.rows[row][col] = old; td.textContent = old; },
+            redo: () => { tableModel.rows[row][col] = val; td.textContent = val; }
+        });
     });
 
     // Row add/delete
     tbody.addEventListener("click", e => {
-        if (!e.target.matches("button")) return;
-        const tr = e.target.closest("tr");
-        const rowIndex = Array.from(tr.parentNode.children).indexOf(tr);
-        const action = e.target.dataset.action;
+        const btn = delegateClosest(e, "button[data-action]");
+        if (!btn) return;
+        const tr = btn.closest("tr");
+        const row = +tr.dataset.row;
 
-        if (action === "add") tableModel.addRowIndex(rowIndex + 1);
-        if (action === "del") tableModel.deleteRow(rowIndex);
-
-        createIncrementalTable(container, tableModel);
+        if (btn.dataset.action === "add") {
+            tableModel.addRowIndex(row + 1);
+            history.push({
+                undo: () => { tableModel.deleteRow(row + 1); renderRows(); },
+                redo: () => { tableModel.addRowIndex(row + 1); renderRows(); }
+            });
+        }
+        if (btn.dataset.action === "del") {
+            const snapshot = { ...tableModel.rows[row] };
+            tableModel.deleteRow(row);
+            history.push({
+                undo: () => { tableModel.addRowIndex(row, snapshot); renderRows(); },
+                redo: () => { tableModel.deleteRow(row); renderRows(); }
+            });
+        }
+        renderRows();
     });
 
     // Column selection
-    tableModel.options.disableColumnSelection === false &&
     table.addEventListener("click", e => {
-        const th = e.target.closest("thead tr:first-child th[data-colname]");
+        const th = delegateClosest(e, "thead tr:first-child th[data-colname]");
         if (!th) return;
-
         const idx = [...th.parentNode.children].indexOf(th);
         const on = th.classList.toggle("col-selected");
-
         table.querySelectorAll(
             `thead tr:last-child th:nth-child(${idx + 1}), tbody td:nth-child(${idx + 1})`
         ).forEach(cell => cell.classList.toggle("col-selected", on));
     });
 
-    // Column header drag & drop
-    /*
+    /* =========================================================
+       Column Box Drag & Drop Mapping
+    ========================================================== */
+
     table.addEventListener("dragover", e => {
-        const th = e.target.closest("th[data-colname]");
-        if (!th) return;
-        e.preventDefault();
-        th.classList.add("dragover");
-    });
-    */
-    table.addEventListener("dragover", e => {
-        const th = e.target.closest("th[data-colname]");
+        const th = delegateClosest(e, "thead tr:nth-child(2) th[data-colname]");
         if (!th) return;
 
-        e.preventDefault();
-
-        const draggedData = JSON.parse(e.dataTransfer.getData("application/json"));
+        const data = e.dataTransfer.getData("application/json");
+        if (!data) return;
+        const dragged = JSON.parse(data);
         const targetKey = th.dataset.colname;
 
-        const isAllowed = targetKey !== draggedData.property && !mapColumns[draggedData.property]?.mapped;
+        const allowed = targetKey !== dragged.property && !mapColumns[dragged.property]?.mapped;
 
         th.classList.remove("dragover", "invalid-drop");
 
-        if (isAllowed) {
-            th.classList.add("dragover");
-            e.dataTransfer.dropEffect = "move"; // green cursor
-        } else {
-            th.classList.add("invalid-drop");
-            e.dataTransfer.dropEffect = "none"; // not-allowed cursor
-        }
+        if (!allowed) { th.classList.add("invalid-drop"); e.dataTransfer.dropEffect = "none"; return; }
+        e.preventDefault();
+        th.classList.add("dragover");
+        e.dataTransfer.dropEffect = "move";
     });
-
 
     table.addEventListener("dragleave", e => {
-        const th = e.target.closest("th[data-colname]");
+        const th = delegateClosest(e, "th[data-colname]");
         if (!th) return;
         th.classList.remove("dragover", "invalid-drop");
     });
 
-
-    /*table.addEventListener("drop", e => {
-        const th = e.target.closest("th[data-colname]");
+    table.addEventListener("drop", e => {
+        const th = delegateClosest(e, "thead tr:nth-child(2) th[data-colname]");
         if (!th) return;
 
+        const data = e.dataTransfer.getData("application/json");
+        if (!data) return;
         e.preventDefault();
 
-        const dropped = JSON.parse(e.dataTransfer.getData("application/json"));
-        const oldKey = th.dataset.colname;
+        const dropped = JSON.parse(data);
+        const targetKey = th.dataset.colname;
         const newKey = dropped.property;
 
-        th.classList.remove("dragover");
-        if (oldKey !== newKey && !mapColumns[newKey].mapped) {
-            const newHeader = dropped.label;
+        if (targetKey === newKey || mapColumns[newKey]?.mapped) return;
 
-            tableModel.renameColumn(oldKey, newKey, newHeader);
-            createIncrementalTable(container, tableModel);
+        const oldHeader = th.textContent;
 
-            document.querySelector(`.columnBox[data-property=${newKey}]`).title = `Mapped to ${oldKey}`;
-        }
-        else {
-            console.warn(`Column ${newKey} is already mapped to ${mapColumns[newKey].mapped}`);
-        }
-    });*/
-    table.addEventListener("drop", e => {
-        const th = e.target.closest("th[data-colname]");
-        if (!th) return;
-
-        e.preventDefault();
-
-        const dropped = JSON.parse(e.dataTransfer.getData("application/json"));
-        const targetKey = th.dataset.colname;
-        const isAllowed = targetKey !== dropped.property && !mapColumns[dropped.property]?.mapped;
-
-        th.classList.remove("dragover", "invalid-drop");
-
-        if (!isAllowed) {
-            console.warn(`Cannot drop ${dropped.property} on ${targetKey}`);
-            return; // block invalid drop
-        }
-
-        tableModel.renameColumn(targetKey, dropped.property, dropped.label);
-        createIncrementalTable(container, tableModel);
-        document.querySelector(`.columnBox[data-property=${dropped.property}]`).title = `Αντιστοιχισμένο στο ${targetKey}`;
-        document.querySelector(`.columnBox[data-property=${dropped.property}]`).classList.add("disabled");
-    });
-
-}
-
-// ----------------------------- Table Renderer -----------------------------
-export function createEditableTable(container, tableModel) {
-    container.innerHTML = "";
-
-    const table = document.createElement("table");
-    table.className = "data-table";
-
-    const thead = document.createElement("thead");
-    const trHead1 = document.createElement("tr"); // selection row
-    const trHead2 = document.createElement("tr"); // header edit row
-
-    tableModel.columns.forEach(col => {
-        const th1 = document.createElement("th");
-        th1.dataset.colname = col.key;
-
-        const th2 = document.createElement("th");
-        th2.contentEditable = true;
-        th2.dataset.colname = col.key;
-        th2.textContent = col.header;
-        th2.title = col.key;
-
-        trHead1.appendChild(th1);
-        trHead2.appendChild(th2);
-    });
-
-    const thActionSelector = document.createElement("th");
-    trHead1.appendChild(thActionSelector);
-    const thActions = document.createElement("th");
-    thActions.textContent = "Actions";
-    trHead2.appendChild(thActions);
-
-    thead.appendChild(trHead1);
-    thead.appendChild(trHead2);
-    table.appendChild(thead);
-
-    const tbody = document.createElement("tbody");
-    tableModel.rows.forEach((row, rowIndex) => {
-        const tr = document.createElement("tr");
-        tableModel.columns.forEach(col => {
-            const td = document.createElement("td");
-            td.contentEditable = true;
-            td.dataset.row = rowIndex;
-            td.dataset.col = col.key;
-            td.textContent = row[col.key];
-            tr.appendChild(td);
+        history.push({
+            undo: () => { renameColumnDOM(table, tableModel, newKey, targetKey, oldHeader); mapColumns[newKey].mapped = null; unlockColumnBox(newKey); },
+            redo: () => { renameColumnDOM(table, tableModel, targetKey, newKey, dropped.label); mapColumns[newKey].mapped = targetKey; lockColumnBox(newKey, targetKey); }
         });
-        const tdActions = document.createElement("td");
-        tdActions.innerHTML = `
-            <button data-action="del" title="Διαγραφή Γραμμής">✘</button>
-            <button data-action="add" title="Προσθήκη Γραμμής">✚</button>
-        `;
-        tr.appendChild(tdActions);
-        tbody.appendChild(tr);
-    });
-    table.appendChild(tbody);
-    container.appendChild(table);
 
-    // ---------------- EVENTS ----------------
-    tbody.addEventListener("input", e => {
-        const td = e.target.closest("td[contenteditable]");
-        if (!td) return;
-        const row = +td.dataset.row;
-        const col = td.dataset.col;
-        tableModel.rows[row][col] = td.textContent;
-        tableModel.triggerChange([{ type: "cell-edit", row, col, value: td.textContent }]);
+        renameColumnDOM(table, tableModel, targetKey, newKey, dropped.label);
+        mapColumns[newKey].mapped = targetKey;
+        lockColumnBox(newKey, targetKey);
     });
 
-    tbody.addEventListener("click", e => {
-        if (!e.target.matches("button")) return;
-        const tr = e.target.closest("tr");
-        const rowIndex = [...tbody.children].indexOf(tr);
-        const action = e.target.dataset.action;
-
-        if (action === "add") tableModel.addRowIndex(rowIndex + 1);
-        if (action === "del") tableModel.deleteRow(rowIndex);
-    });
-
-    // Column selection
-    table.addEventListener("click", e => {
-        const th = e.target.closest("thead tr:first-child th[data-colname]");
-        if (!th) return;
-        const idx = [...th.parentNode.children].indexOf(th);
-        const on = th.classList.toggle("col-selected");
-        table.querySelectorAll(
-            `thead tr:last-child th:nth-child(${idx + 1}), tbody td:nth-child(${idx + 1})`
-        ).forEach(cell => cell.classList.toggle("col-selected", on));
-    });
-
-    // Drag/drop columns
-    table.addEventListener("dragover", e => {
-        const th = e.target.closest("th[data-colname]");
-        if (!th) return;
-        e.preventDefault();
-        th.classList.add("dragover");
-    });
-    table.addEventListener("dragleave", e => {
-        const th = e.target.closest("th[data-colname]");
-        if (!th) return;
-        th.classList.remove("dragover");
-    });
-    table.addEventListener("drop", e => {
-        const th = e.target.closest("th[data-colname]");
-        if (!th) return;
-        e.preventDefault();
-        th.classList.remove("dragover");
-        const dropped = JSON.parse(e.dataTransfer.getData("application/json"));
-        tableModel.renameColumn(th.dataset.colname, dropped.property, dropped.label);
-        tableModel.triggerChange();
+    /* =========================================================
+       Undo / Redo
+    ========================================================== */
+    document.addEventListener("keydown", e => {
+        if (e.ctrlKey && e.key === "z") history.undo();
+        if (e.ctrlKey && e.key === "y") history.redo();
     });
 }
