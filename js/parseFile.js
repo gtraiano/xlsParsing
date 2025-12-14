@@ -1,26 +1,36 @@
-import { TableModel, initTable } from "./table.js";
+// parseFile.js
+import { createTable } from "./table.js";
+import { TableModel } from "./TableModel.js";
 import { updateJSON } from "./syntax_highlight.js";
-import { parseFileState } from "./state.js";
+import { parseFileState, mapColumns } from "./state.js";
 import { debounce } from "./utils.js";
-import { mapColumns } from "./state.js";
+import { subscribe, notify } from "./store.js";
 
 let initialized = false;
 let worker = null;
 
+// JSON preview
+const preview = document.querySelector("#output");
+
+// Subscribe to store updates to refresh JSON preview
+subscribe(() => {
+    if (!parseFileState.tableModel) return;
+    updateJSON(parseFileState.tableModel.rows, preview);
+});
+
 export function initParseFileTab() {
     if (initialized) return;
 
-    // --- DOM ---
+    // ---------------- DOM ----------------
     const dropArea = document.getElementById("drop-area");
     const fileInput = document.getElementById("fileInput");
     const tableContainer = document.getElementById("tableContainer");
-    const output = document.getElementById("output");
     const columnBoxes = document.getElementById("columnBoxes");
     const resetBtn = document.getElementById("resetBtn");
     const deleteBtn = document.getElementById("deleteBtn");
     const skipLines = document.getElementById("skipLines");
 
-    // --- Web Worker ---
+    // ---------------- Worker ----------------
     worker = new Worker("./js/worker.js");
 
     worker.onmessage = (e) => {
@@ -39,15 +49,10 @@ export function initParseFileTab() {
             rows: firstSheet
         });
 
+        notify(); // initial update
+
         // Render table
-        initTable(tableContainer, parseFileState.tableModel, mapColumns);
-
-        // Live update JSON
-        parseFileState.tableModel.onChange(() =>
-            updateJSON(parseFileState.tableModel.rows, output)
-        );
-
-        updateJSON(firstSheet, output);
+        createTable(tableContainer, parseFileState.tableModel);
 
         // Show controls
         resetBtn.style.display = "inline-block";
@@ -56,14 +61,13 @@ export function initParseFileTab() {
         initColumnBoxes();
     };
 
-    // --- Helpers ---
+    // ---------------- Helpers ----------------
     function sendToWorker(file) {
         if (!file) return;
-
         parseFileState.lastFile = file;
 
         tableContainer.textContent = "Parsing…";
-        output.textContent = "Parsing…";
+        preview.textContent = "Parsing…";
         const range = Number.parseInt(skipLines.value);
 
         worker.postMessage({ file, range });
@@ -85,13 +89,12 @@ export function initParseFileTab() {
         });
     }
 
-    // --- Controls: RESET ---
+    // ---------------- Controls ----------------
     resetBtn.addEventListener("click", () => {
         if (!parseFileState.lastFile) return;
         sendToWorker(parseFileState.lastFile);
     });
 
-    // --- Controls: DELETE SELECTED COLUMNS ---
     deleteBtn.addEventListener("click", () => {
         const model = parseFileState.tableModel;
         if (!model) return;
@@ -103,12 +106,12 @@ export function initParseFileTab() {
 
         if (!selected.length) return;
 
-        model.deleteColumns(selected);
-        initTable(tableContainer, model, mapColumns); // update UI
+        model.removeColumns(selected); // <-- updated method
+        createTable(tableContainer, model); // update UI
         initColumnBoxes();
     });
 
-    // --- Drag/drop + file selection ---
+    // ---------------- File Drag & Drop ----------------
     dropArea.addEventListener("click", () => fileInput.click());
     fileInput.addEventListener("change", e => {
         if (e.target.files.length) sendToWorker(e.target.files[0]);
@@ -119,9 +122,7 @@ export function initParseFileTab() {
         dropArea.classList.add("dragover");
     });
 
-    dropArea.addEventListener("dragleave", () =>
-        dropArea.classList.remove("dragover")
-    );
+    dropArea.addEventListener("dragleave", () => dropArea.classList.remove("dragover"));
 
     dropArea.addEventListener("drop", e => {
         e.preventDefault();
@@ -132,7 +133,7 @@ export function initParseFileTab() {
         }
     });
 
-    // --- Column Boxes Drag & Drop ---
+    // ---------------- Column Boxes Drag & Drop ----------------
     columnBoxes.addEventListener("dragstart", e => {
         const box = e.target.closest(".columnBox");
         if (!box) return;
@@ -152,7 +153,7 @@ export function initParseFileTab() {
         box.classList.remove("dragging");
     });
 
-    // --- Skip lines input ---
+    // ---------------- Skip Lines Input ----------------
     skipLines.addEventListener("input", debounce(() => {
         if (!parseFileState.lastFile) return;
         sendToWorker(parseFileState.lastFile);
