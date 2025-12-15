@@ -1,10 +1,15 @@
-// parseFile.js
 import { createTable } from "./table.js";
 import { TableModel } from "./TableModel.js";
 import { updateJSON } from "./syntax_highlight.js";
 import { parseFileState, mapColumns } from "./state.js";
 import { debounce } from "./utils.js";
 import { subscribe, notify } from "./store.js";
+import {
+    bindCellEditing,
+    bindRowActions,
+    bindColumnSelection,
+    bindColumnBoxes
+} from "./tableEvents.js";
 
 let initialized = false;
 let worker = null;
@@ -12,7 +17,7 @@ let worker = null;
 // JSON preview
 const preview = document.querySelector("#output");
 
-// Subscribe to store updates to refresh JSON preview
+// Subscribe to updates for live JSON preview
 subscribe(() => {
     if (!parseFileState.tableModel) return;
     updateJSON(parseFileState.tableModel.rows, preview);
@@ -21,7 +26,6 @@ subscribe(() => {
 export function initParseFileTab() {
     if (initialized) return;
 
-    // ---------------- DOM ----------------
     const dropArea = document.getElementById("drop-area");
     const fileInput = document.getElementById("fileInput");
     const tableContainer = document.getElementById("tableContainer");
@@ -46,19 +50,16 @@ export function initParseFileTab() {
         // Build table model
         parseFileState.tableModel = new TableModel({
             columns: Object.keys(firstSheet[0]).map(k => ({ key: k, header: k })),
-            rows: firstSheet
+            rows: firstSheet,
+            options: { disableColumnSelection: false }
         });
 
-        notify(); // initial update
-
-        // Render table
-        createTable(tableContainer, parseFileState.tableModel);
+        // Render table and bind events
+        renderTable();
 
         // Show controls
         resetBtn.style.display = "inline-block";
         deleteBtn.style.display = "inline-block";
-
-        initColumnBoxes();
     };
 
     // ---------------- Helpers ----------------
@@ -68,17 +69,25 @@ export function initParseFileTab() {
 
         tableContainer.textContent = "Parsing…";
         preview.textContent = "Parsing…";
-        const range = Number.parseInt(skipLines.value);
 
+        const range = Number.parseInt(skipLines.value);
         worker.postMessage({ file, range });
     }
 
-    function initColumnBoxes() {
-        const model = parseFileState.tableModel;
-        if (!model) return;
+    function renderTable() {
+        if (!parseFileState.tableModel) return;
 
+        createTable(tableContainer, parseFileState.tableModel);
+        const table = tableContainer.querySelector("table");
+
+        // Bind table events
+        bindCellEditing(table, parseFileState.tableModel);
+        bindRowActions(table, parseFileState.tableModel);
+        bindColumnSelection(table, parseFileState.tableModel);
+        bindColumnBoxes(columnBoxes, parseFileState.tableModel);
+
+        // Initialize column boxes
         columnBoxes.innerHTML = "";
-
         Object.values(mapColumns).forEach(mp => {
             const box = document.createElement("span");
             box.className = "columnBox";
@@ -87,6 +96,8 @@ export function initParseFileTab() {
             box.dataset.property = mp.property;
             columnBoxes.appendChild(box);
         });
+
+        notify();
     }
 
     // ---------------- Controls ----------------
@@ -106,9 +117,8 @@ export function initParseFileTab() {
 
         if (!selected.length) return;
 
-        model.removeColumns(selected); // <-- updated method
-        createTable(tableContainer, model); // update UI
-        initColumnBoxes();
+        model.deleteColumns(selected);
+        renderTable();
     });
 
     // ---------------- File Drag & Drop ----------------
@@ -131,26 +141,6 @@ export function initParseFileTab() {
         if (e.dataTransfer.files.length) {
             sendToWorker(e.dataTransfer.files[0]);
         }
-    });
-
-    // ---------------- Column Boxes Drag & Drop ----------------
-    columnBoxes.addEventListener("dragstart", e => {
-        const box = e.target.closest(".columnBox");
-        if (!box) return;
-
-        e.dataTransfer.setData("application/json", JSON.stringify({
-            label: box.textContent.trim(),
-            property: box.dataset.property
-        }));
-
-        e.dataTransfer.effectAllowed = "move";
-        box.classList.add("dragging");
-    });
-
-    columnBoxes.addEventListener("dragend", e => {
-        const box = e.target.closest(".columnBox");
-        if (!box) return;
-        box.classList.remove("dragging");
     });
 
     // ---------------- Skip Lines Input ----------------

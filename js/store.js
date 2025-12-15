@@ -1,4 +1,3 @@
-// store.js
 const subscribers = new Set();
 
 export function subscribe(fn) {

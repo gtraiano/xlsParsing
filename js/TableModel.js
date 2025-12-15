@@ -1,89 +1,143 @@
 // TableModel.js
-import { notify } from "./store.js";
-import { mapColumns } from "./state.js";
-
 export class TableModel {
-    constructor({ columns = [], rows = [] }) {
-        this.columns = columns;          // { key, header }
-        this.rows = rows;                // array of objects
-        this.history = [];               // for undo/redo
-        this.saveHistory();              // initial snapshot
+    constructor({ columns = [], rows = [], options = {} } = {}) {
+        this.columns = columns.map(col => ({ ...col })); // { key, header }
+        this.rows = rows.map(r => ({ ...r }));
+        this.options = options;
+
+        this.history = [];
+        this.historyIndex = -1; // last applied entry
+        this._listeners = [];
     }
 
-    // ---------------- HISTORY ----------------
-    saveHistory() {
-        // Save a deep copy of rows and columns
-        this.history.push({
-            columns: JSON.parse(JSON.stringify(this.columns)),
-            rows: JSON.parse(JSON.stringify(this.rows))
+    subscribe(fn) {
+        if (typeof fn === "function") this._listeners.push(fn);
+    }
+
+    unsubscribe(fn) {
+        this._listeners = this._listeners.filter(f => f !== fn);
+    }
+
+    notify() {
+        this._listeners.forEach(fn => fn());
+    }
+
+    // --- Row manipulation ---
+    addRows(count = 1, index = this.rows.length) {
+        if (count < 1) return;
+        const newRows = Array.from({ length: count }, () => {
+            const row = {};
+            this.columns.forEach(col => (row[col.key] = ""));
+            return row;
         });
-        notify();
+        this.rows.splice(index, 0, ...newRows);
+        this._pushHistory({ type: "row-add", index, count, rows: newRows });
+        this.notify();
     }
 
-    undo() {
-        if (this.history.length < 2) return;
-        this.history.pop(); // discard current
-        const last = this.history[this.history.length - 1];
-        this.columns = JSON.parse(JSON.stringify(last.columns));
-        this.rows = JSON.parse(JSON.stringify(last.rows));
-        notify();
-    }
-
-    // ---------------- ROW OPERATIONS ----------------
-    addRow(index = this.rows.length) {
-        const newRow = {};
-        this.columns.forEach(c => newRow[c.key] = "");
-        this.rows.splice(index, 0, newRow);
-        this.saveHistory();
-    }
-
-    deleteRow(index) {
+    removeRow(index) {
         if (index < 0 || index >= this.rows.length) return;
-        this.rows.splice(index, 1);
-        this.saveHistory();
+        const [removed] = this.rows.splice(index, 1);
+        this._pushHistory({ type: "row-remove", index, row: removed });
+        this.notify();
     }
 
-    // ---------------- COLUMN OPERATIONS ----------------
-    addColumn(key, header) {
-        this.columns.push({ key, header });
-        this.rows.forEach(r => r[key] = "");
-        this.saveHistory();
+    // --- Column manipulation ---
+    renameColumn(key, newHeader) {
+        const col = this.columns.find(c => c.key === key);
+        if (!col) return;
+        const oldHeader = col.header;
+        col.header = newHeader;
+        this._pushHistory({ type: "column-rename", column: col, oldHeader, newHeader });
+        this.notify();
     }
 
-    removeColumns(keys) {
-        // Remove columns from model
+    deleteColumns(keys = []) {
+        if (!keys.length) return;
+        const removedColumns = this.columns.filter(c => keys.includes(c.key));
+        const removedData = this.rows.map(row => {
+            const obj = {};
+            removedColumns.forEach(col => (obj[col.key] = row[col.key]));
+            return obj;
+        });
         this.columns = this.columns.filter(c => !keys.includes(c.key));
         this.rows.forEach(row => keys.forEach(k => delete row[k]));
-
-        // Clear mapping if any
-        keys.forEach(k => {
-            if (mapColumns[k]) mapColumns[k].mapped = null;
-        });
-
-        this.saveHistory();
+        this._pushHistory({ type: "column-delete", columns: removedColumns, data: removedData });
+        this.notify();
     }
 
-    renameColumn(oldKey, newKey, newHeader) {
-        const col = this.columns.find(c => c.key === oldKey);
-        if (!col) return;
+    setCell(rowIndex, colKey, value) {
+        if (rowIndex < 0 || rowIndex >= this.rows.length) return;
+        const row = this.rows[rowIndex];
+        if (!(colKey in row)) return;
+        const oldValue = row[colKey];
+        row[colKey] = value;
+        this._pushHistory({ type: "cell-edit", rowIndex, colKey, oldValue, newValue: value });
+        this.notify();
+    }
 
-        col.key = newKey;
-        if (newHeader) col.header = newHeader;
+    // --- Undo/Redo ---
+    undo() {
+        if (this.historyIndex < 0) return;
+        const entry = this.history[this.historyIndex];
+        this._applyUndo(entry);
+        this.historyIndex--;
+        this.notify();
+    }
 
-        this.rows.forEach(row => {
-            if (row.hasOwnProperty(oldKey)) {
-                row[newKey] = row[oldKey];
-                delete row[oldKey];
-            }
-        });
+    redo() {
+        if (this.historyIndex + 1 >= this.history.length) return;
+        const entry = this.history[this.historyIndex + 1];
+        this._applyRedo(entry);
+        this.historyIndex++;
+        this.notify();
+    }
 
-        // Update mapping if present
-        if (mapColumns[oldKey]) {
-            mapColumns[oldKey].mapped = null;
-            mapColumns[newKey] = mapColumns[newKey] || { ...mapColumns[oldKey] };
-            mapColumns[newKey].mapped = newKey;
+    _pushHistory(entry) {
+        this.history.splice(this.historyIndex + 1);
+        this.history.push(entry);
+        this.historyIndex = this.history.length - 1;
+    }
+
+    _applyUndo(entry) {
+        switch (entry.type) {
+            case "row-add":
+                this.rows.splice(entry.index, entry.count);
+                break;
+            case "row-remove":
+                this.rows.splice(entry.index, 0, entry.row);
+                break;
+            case "column-rename":
+                entry.column.header = entry.oldHeader;
+                break;
+            case "column-delete":
+                this.columns.splice(entry.columns[0].index, 0, ...entry.columns);
+                this.rows.forEach((row, i) => Object.assign(row, entry.data[i]));
+                break;
+            case "cell-edit":
+                this.rows[entry.rowIndex][entry.colKey] = entry.oldValue;
+                break;
         }
+    }
 
-        this.saveHistory();
+    _applyRedo(entry) {
+        switch (entry.type) {
+            case "row-add":
+                this.rows.splice(entry.index, 0, ...entry.rows);
+                break;
+            case "row-remove":
+                this.rows.splice(entry.index, 1);
+                break;
+            case "column-rename":
+                entry.column.header = entry.newHeader;
+                break;
+            case "column-delete":
+                this.columns = this.columns.filter(c => !entry.columns.find(rc => rc.key === c.key));
+                this.rows.forEach((row, i) => entry.columns.forEach(col => delete row[col.key]));
+                break;
+            case "cell-edit":
+                this.rows[entry.rowIndex][entry.colKey] = entry.newValue;
+                break;
+        }
     }
 }

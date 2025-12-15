@@ -1,20 +1,15 @@
-//importScripts("https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js");
 importScripts("../libs/xlsx.full.min.js");
 
-const trimObject = (obj) => {
-    return Object.fromEntries(
-        Object.entries(obj).map(([key, value]) => [
-            key.trim(),
-            typeof value === "string" ? value.trim() : value
-        ])
+const trimObject = obj =>
+    Object.fromEntries(
+        Object.entries(obj).map(([k, v]) => [k.trim(), typeof v === "string" ? v.trim() : v])
     );
-};
 
-self.onmessage = (e) => {
+self.onmessage = e => {
     const { file, range } = e.data;
     const reader = new FileReader();
 
-    reader.onload = (ev) => {
+    reader.onload = ev => {
         const data = ev.target.result;
         const workbook = XLSX.read(data, { type: "array" });
         const result = {};

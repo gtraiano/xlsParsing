@@ -3,12 +3,17 @@ import { TableModel } from "./TableModel.js";
 import { updateJSON } from "./syntax_highlight.js";
 import { createTableState, mapColumns } from "./state.js";
 import { subscribe, notify } from "./store.js";
+import {
+    bindCellEditing,
+    bindRowActions,
+    bindColumnSelection,
+    bindColumnBoxes
+} from "./tableEvents.js";
 
 let initialized = false;
 
 const preview = document.querySelector("#customOutput");
 
-// Subscribe to state changes and update JSON preview
 subscribe(() => {
     if (!createTableState.tableModel) return;
     updateJSON(createTableState.tableModel.rows, preview);
@@ -17,52 +22,62 @@ subscribe(() => {
 export function initCreateTableTab() {
     if (initialized) return;
 
-    // --- DOM ---
     const container = document.getElementById("customTableContainer");
     const createBtn = document.getElementById("create-table-btn");
     const addRowBtn = document.getElementById("add-row-btn");
     const addRowCount = document.getElementById("add-row-count");
+    const columnBoxes = document.getElementById("columnBoxes");
 
     function renderTable() {
         if (!createTableState.tableModel) return;
+
+        // Create table and append to container
         createTable(container, createTableState.tableModel);
+
+        const table = container.querySelector("table");
+
+        // Bind events
+        bindCellEditing(table, createTableState.tableModel);
+        bindRowActions(table, createTableState.tableModel);
+        bindColumnSelection(table, createTableState.tableModel);
+        bindColumnBoxes(columnBoxes, createTableState.tableModel);
+
+        // Update JSON preview
+        notify();
     }
 
-    // --- CREATE TABLE ---
     createBtn.addEventListener("click", () => {
         const columns = Object.values(mapColumns).map(mp => ({
             key: mp.property,
             header: mp.label
         }));
 
-        const rows = []; // empty initially
-
         createTableState.tableModel = new TableModel({
             columns,
-            rows,
-            options: { disableColumnSelection: true }
+            rows: [],
+            options: { disableColumnSelection: false }
         });
 
-        notify(); // trigger JSON preview update
+        // Initialize column boxes
+        columnBoxes.innerHTML = "";
+        Object.values(mapColumns).forEach(mp => {
+            const box = document.createElement("span");
+            box.className = "columnBox";
+            box.draggable = true;
+            box.textContent = mp.label;
+            box.dataset.property = mp.property;
+            columnBoxes.appendChild(box);
+        });
+
         renderTable();
     });
 
-    // --- ADD ROWS ---
     addRowBtn.addEventListener("click", () => {
-        const model = createTableState.tableModel;
-        if (!model) return;
+        if (!createTableState.tableModel) return;
 
         const n = Math.max(1, parseInt(addRowCount.value) || 1);
+        createTableState.tableModel.addRows(n);
 
-        for (let i = 0; i < n; i++) {
-            const newRow = {};
-            model.columns.forEach(col => {
-                newRow[col.key] = "";
-            });
-            model.rows.push(newRow);
-        }
-
-        notify(); // update JSON preview
         renderTable();
     });
 

@@ -15,11 +15,12 @@ import {
     lockColumnBox,
     unlockColumnBox
 } from "./mappingDOM.js";
+import { createTableState, parseFileState } from "./state.js";
+import { notify } from "./store.js";
 
 /* ===========================
    Cell Edit
 =========================== */
-
 export function bindCellEditing(table, model) {
     table.tBodies[0].addEventListener("input", e => {
         const td = delegateClosest(e, "td[contenteditable]");
@@ -27,9 +28,10 @@ export function bindCellEditing(table, model) {
 
         const row = +td.closest("tr").dataset.row;
         const col = td.dataset.col;
+        if (!model.rows[row]) return;  // safeguard
+
         const oldVal = model.rows[row][col];
         const newVal = td.textContent;
-
         if (oldVal === newVal) return;
 
         history.push({
@@ -37,21 +39,23 @@ export function bindCellEditing(table, model) {
             undo() {
                 model.rows[row][col] = oldVal;
                 td.textContent = oldVal;
+                notify();  // update JSON preview
             },
             redo() {
                 model.rows[row][col] = newVal;
                 td.textContent = newVal;
+                notify();
             }
         });
 
         model.rows[row][col] = newVal;
+        notify();
     });
 }
 
 /* ===========================
    Row Add / Delete
 =========================== */
-
 export function bindRowActions(table, model) {
     table.tBodies[0].addEventListener("click", e => {
         const btn = delegateClosest(e, "button[data-action]");
@@ -67,14 +71,17 @@ export function bindRowActions(table, model) {
                 undo() {
                     removeRowState(model, row + 1);
                     removeRowDOM(table, row + 1);
+                    notify();
                 },
                 redo() {
                     insertRowState(model, row + 1, snapshot);
                     insertRowDOM(table, model, row + 1);
+                    notify();
                 }
             });
 
             insertRowDOM(table, model, row + 1);
+            notify();
         }
 
         if (btn.dataset.action === "del") {
@@ -85,14 +92,91 @@ export function bindRowActions(table, model) {
                 undo() {
                     insertRowState(model, row, snapshot);
                     insertRowDOM(table, model, row);
+                    notify();
                 },
                 redo() {
                     removeRowState(model, row);
                     removeRowDOM(table, row);
+                    notify();
                 }
             });
 
             removeRowDOM(table, row);
+            notify();
         }
+    });
+}
+
+/* ===========================
+   Column Selection
+=========================== */
+export function bindColumnSelection(table, model) {
+    if (model.options.disableColumnSelection) return;
+
+    table.addEventListener("click", e => {
+        const th = e.target.closest("thead tr:first-child th[data-key]");
+        if (!th) return;
+
+        const idx = [...th.parentNode.children].indexOf(th);
+        const selected = th.classList.toggle("col-selected");
+
+        table.querySelectorAll(
+            `thead tr:last-child th:nth-child(${idx + 1}), tbody td:nth-child(${idx + 1})`
+        ).forEach(cell => cell.classList.toggle("col-selected", selected));
+    });
+}
+
+/* ===========================
+   Column Box Drag & Drop
+=========================== */
+export function bindColumnBoxes(columnBoxes, model) {
+    if (!columnBoxes) return;
+
+    columnBoxes.addEventListener("dragstart", e => {
+        const box = e.target.closest(".columnBox");
+        if (!box) return;
+
+        e.dataTransfer.setData("application/json", JSON.stringify({
+            label: box.textContent.trim(),
+            property: box.dataset.property
+        }));
+
+        e.dataTransfer.effectAllowed = "move";
+        box.classList.add("dragging");
+    });
+
+    columnBoxes.addEventListener("dragend", e => {
+        const box = e.target.closest(".columnBox");
+        if (!box) return;
+        box.classList.remove("dragging");
+    });
+
+    tableDropListener(columnBoxes, model);
+}
+
+function tableDropListener(columnBoxes, model) {
+    const table = model === parseFileState.tableModel
+        ? document.getElementById("tableContainer").querySelector("table")
+        : document.getElementById("customTableContainer").querySelector("table");
+
+    if (!table) return;
+
+    table.addEventListener("dragover", e => e.preventDefault());
+    table.addEventListener("drop", e => {
+        e.preventDefault();
+
+        const data = e.dataTransfer.getData("application/json");
+        if (!data) return;
+
+        const { property, label } = JSON.parse(data);
+        const th = e.target.closest("th[data-key]");
+        if (!th) return;
+
+        // Map column
+        const oldKey = th.dataset.key;
+        renameColumnDOM(table, model, oldKey, property, label);
+        applyMap(property, th.dataset.key, th.textContent);
+        lockColumnBox(property, th.dataset.key);
+        notify();
     });
 }

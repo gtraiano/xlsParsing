@@ -1,7 +1,5 @@
 export function insertRowState(model, index, rowData = null) {
-    const row = rowData ?? Object.fromEntries(
-        model.columns.map(c => [c.key, ""])
-    );
+    const row = rowData ?? Object.fromEntries(model.columns.map(c => [c.key, ""]));
     model.rows.splice(index, 0, row);
     return row;
 }

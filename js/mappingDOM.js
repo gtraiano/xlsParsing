@@ -7,9 +7,7 @@ export function renameColumnDOM(table, model, oldKey, newKey, newHeader) {
     table.querySelectorAll(`td[data-col="${oldKey}"]`)
         .forEach(td => td.dataset.col = newKey);
 
-    const th = table.querySelector(
-        `thead tr:nth-child(2) th[data-colname="${newKey}"]`
-    );
+    const th = table.querySelector(`thead tr:nth-child(2) th[data-colname="${newKey}"]`);
     if (th) {
         th.textContent = newHeader;
         th.title = newKey;
