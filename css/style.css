@@ -146,7 +146,7 @@ th {
 /* ---------------------------------------------------------
    EXCEL-LIKE ARROW ON HOVER
 --------------------------------------------------------- */
-thead tr:first-of-type th[data-colname]:hover::after {
+thead tr:first-of-type th.selectable[data-colname]:hover::after {
     content: "";
     position: absolute;
     right: 0px;

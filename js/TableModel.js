@@ -1,9 +1,13 @@
 // TableModel.js
 export class TableModel {
+    static defaultOptions = {
+        disableColumnSelection: false
+    }
+    
     constructor({ columns = [], rows = [], options = {} } = {}) {
         this.columns = columns.map(col => ({ ...col })); // { key, header }
         this.rows = rows.map(r => ({ ...r }));
-        this.options = options;
+        this.options = { ...TableModel.defaultOptions, ...structuredClone(options) };
 
         this.history = [];
         this.historyIndex = -1; // last applied entry

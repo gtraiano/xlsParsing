@@ -10,7 +10,7 @@ export function createTable(container, tableModel) {
     tableModel.columns.forEach(col => {
         const th = document.createElement("th");
         th.dataset.colname = col.key;
-        th.className = "selectable";
+        if(!tableModel.options.disableColumnSelection) th.className = "selectable";
         selectRow.appendChild(th);
     });
     selectRow.innerHTML += `<th class="selectable"></th>`

@@ -55,7 +55,7 @@ export function initCreateTableTab() {
         createTableState.tableModel = new TableModel({
             columns,
             rows: [],
-            options: { disableColumnSelection: false }
+            options: { disableColumnSelection: true }
         });
 
         // Initialize column boxes
