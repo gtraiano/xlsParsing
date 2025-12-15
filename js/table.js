@@ -13,6 +13,7 @@ export function createTable(container, tableModel) {
         th.className = "selectable";
         selectRow.appendChild(th);
     });
+    selectRow.innerHTML += `<th class="selectable"></th>`
     thead.appendChild(selectRow);
 
     // --- Column headers row ---
@@ -20,12 +21,14 @@ export function createTable(container, tableModel) {
     tableModel.columns.forEach(col => {
         const th = document.createElement("th");
         th.textContent = col.header;
+        th.title = col.key;
         th.dataset.key = col.key;
         th.dataset.colname = col.key;
         th.contentEditable = "true";
         th.draggable = true;
         headerRow.appendChild(th);
     });
+    headerRow.innerHTML += `<th></th>`;
     thead.appendChild(headerRow);
 
     // --- Table body ---
@@ -44,7 +47,12 @@ export function createTable(container, tableModel) {
 
         // Row actions (add / delete)
         const tdActions = document.createElement("td");
-        tdActions.innerHTML = `<button data-action="del">✘</button><button data-action="add">✚</button>`;
+        tdActions.innerHTML = `
+            <div class="row-actions">
+                <button data-action="del">🗙</button>
+                <button data-action="add">✚</button>
+            <div>
+        `;
         tr.appendChild(tdActions);
 
         tbody.appendChild(tr);

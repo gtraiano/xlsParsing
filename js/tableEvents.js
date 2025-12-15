@@ -161,18 +161,41 @@ function tableDropListener(columnBoxes, model) {
 
     if (!table) return;
 
-    table.addEventListener("dragover", e => e.preventDefault());
+    table.addEventListener("dragover", e => {
+        e.preventDefault();
+
+        const th = e.target.closest("th[data-key]");
+        clearColumnDragState(table);
+
+        if (!th) return;
+
+        // Disallow dropping on locked columns
+        if (th.classList.contains("locked")) {
+            th.classList.add("invalid-drop");
+            return;
+        }
+
+        th.classList.add("dragover");
+    });
+
+    table.addEventListener("dragleave", e => {
+        if (!e.relatedTarget || !table.contains(e.relatedTarget)) {
+            clearColumnDragState(table);
+        }
+    });
+
     table.addEventListener("drop", e => {
         e.preventDefault();
+        clearColumnDragState(table);
 
         const data = e.dataTransfer.getData("application/json");
         if (!data) return;
 
-        const { property, label } = JSON.parse(data);
         const th = e.target.closest("th[data-key]");
-        if (!th) return;
+        if (!th || th.classList.contains("locked")) return;
 
-        // Map column
+        const { property, label } = JSON.parse(data);
+
         const oldKey = th.dataset.key;
         renameColumnDOM(table, model, oldKey, property, label);
         applyMap(property, th.dataset.key, th.textContent);
@@ -180,3 +203,9 @@ function tableDropListener(columnBoxes, model) {
         notify();
     });
 }
+
+function clearColumnDragState(table) {
+    table.querySelectorAll("th.dragover, th.invalid-drop")
+        .forEach(th => th.classList.remove("dragover", "invalid-drop"));
+}
+

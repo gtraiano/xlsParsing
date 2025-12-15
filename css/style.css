@@ -385,3 +385,8 @@ th.invalid-drop {
 button {
     cursor: pointer;
 }
+
+.row-actions {
+    display: flex;
+    justify-content: center;
+}
